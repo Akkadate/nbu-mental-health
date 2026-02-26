@@ -135,6 +135,13 @@ router.post('/users',
             .insert({ email, password_hash, role, name, faculty: faculty ?? null, is_active: true })
             .returning(['id', 'role', 'email', 'name', 'faculty', 'is_active', 'created_at']);
 
+        // Auto-register into role-specific profile table
+        if (role === 'advisor') {
+            await db('advisory.advisors').insert({ user_id: created.id, name, faculty: faculty ?? null });
+        } else if (role === 'counselor') {
+            await db('clinical.counselors').insert({ user_id: created.id, name });
+        }
+
         res.status(201).json(created);
     }
 );
