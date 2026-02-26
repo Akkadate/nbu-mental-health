@@ -233,6 +233,24 @@ export function getStudentFacultiesApi() {
     return apiFetch<string[]>('/students/faculties')
 }
 
+export function updateStudentApi(id: string, data: Partial<Pick<Student, 'faculty' | 'year' | 'status'>>) {
+    return apiFetch<Student>(`/students/${id}`, {
+        method: 'PATCH',
+        body: JSON.stringify(data),
+    })
+}
+
+export function deleteStudentApi(id: string) {
+    return apiFetch<void>(`/students/${id}`, { method: 'DELETE' })
+}
+
+export function importStudentsApi(csv: string) {
+    return apiFetch<{ inserted: number; updated: number; errors: string[] }>('/students/import', {
+        method: 'POST',
+        body: JSON.stringify({ csv }),
+    })
+}
+
 // ── Resources ────────────────────────────────────────────────────
 
 export interface Resource {

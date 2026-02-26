@@ -1,10 +1,10 @@
 import { Router, Request, Response } from 'express';
+import { parse } from 'csv-parse/sync';
 import { schemas } from '@nbu/shared';
 import db from '../db.js';
 import { hashSensitiveData } from '../services/encryption.js';
 import { assignVerifiedMenu } from '../services/line-client.js';
 import { logger } from '../logger.js';
-import { AppError } from '../middleware/error-handler.js';
 import { authenticate, authorize } from '../middleware/index.js';
 
 const router = Router();
@@ -137,7 +137,6 @@ router.get('/',
     async (req: Request, res: Response) => {
         const { search, faculty, linked, page = '1', limit = '50' } = req.query;
 
-        // Base filter (ใช้ร่วมกันระหว่าง count และ data query)
         const applyFilters = (q: ReturnType<typeof db>) => {
             if (search) q = q.where('s.student_code', 'ilike', `%${search}%`);
             if (faculty) q = q.where('s.faculty', faculty as string);
@@ -150,15 +149,16 @@ router.get('/',
         const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
         const offset = (pageNum - 1) * limitNum;
 
-        // Data query
         const dataQuery = applyFilters(
             db('public.students as s')
                 .leftJoin('public.line_links as l', 'l.student_id', 's.id')
-                .select('s.id', 's.student_code', 's.faculty', 's.year', 's.status', 's.created_at',
-                    db.raw('l.line_user_id'), db.raw('l.linked_at'))
+                .select(
+                    's.id', 's.student_code', 's.faculty', 's.year', 's.status',
+                    's.created_at', 's.updated_at',
+                    db.raw('l.line_user_id'), db.raw('l.linked_at')
+                )
         ).orderBy('s.student_code').limit(limitNum).offset(offset);
 
-        // Count query — แยกออกจาก data query ไม่ให้ติด select columns
         const countQuery = applyFilters(
             db('public.students as s')
                 .leftJoin('public.line_links as l', 'l.student_id', 's.id')
@@ -178,7 +178,7 @@ router.get('/',
 
 /**
  * GET /students/faculties
- * รายชื่อคณะทั้งหมด — admin only (สำหรับ filter dropdown)
+ * รายชื่อคณะทั้งหมด — admin only
  */
 router.get('/faculties',
     authenticate,
@@ -191,6 +191,144 @@ router.get('/faculties',
     }
 );
 
+/**
+ * POST /students/import
+ * นำเข้านักศึกษาจาก CSV (admin only)
+ * Body: { csv: string }
+ * CSV columns: student_code, faculty, year[, status]
+ */
+router.post('/import',
+    authenticate,
+    authorize('admin'),
+    async (req: Request, res: Response) => {
+        const { csv } = req.body;
+        if (typeof csv !== 'string' || !csv.trim()) {
+            res.status(400).json({ error: 'csv field is required' });
+            return;
+        }
+
+        let records: Record<string, string>[];
+        try {
+            records = parse(csv, {
+                columns: true,
+                skip_empty_lines: true,
+                trim: true,
+            });
+        } catch (e: unknown) {
+            const msg = e instanceof Error ? e.message : String(e);
+            res.status(400).json({ error: `CSV parse error: ${msg}` });
+            return;
+        }
+
+        let inserted = 0;
+        let updated = 0;
+        const errors: string[] = [];
+
+        for (const [i, row] of records.entries()) {
+            const rowNum = i + 2;
+            const { student_code, faculty, year, status = 'active' } = row;
+
+            if (!student_code || !faculty || !year) {
+                errors.push(`แถว ${rowNum}: ขาด student_code, faculty หรือ year`);
+                continue;
+            }
+
+            const yearNum = parseInt(year, 10);
+            if (isNaN(yearNum) || yearNum < 1 || yearNum > 10) {
+                errors.push(`แถว ${rowNum} (${student_code}): year ต้องเป็น 1–10`);
+                continue;
+            }
+
+            if (!['active', 'inactive'].includes(status)) {
+                errors.push(`แถว ${rowNum} (${student_code}): status ต้องเป็น active หรือ inactive`);
+                continue;
+            }
+
+            try {
+                const existing = await db('public.students').where({ student_code }).first();
+                if (existing) {
+                    await db('public.students')
+                        .where({ student_code })
+                        .update({ faculty, year: yearNum, status, updated_at: new Date() });
+                    updated++;
+                } else {
+                    await db('public.students').insert({ student_code, faculty, year: yearNum, status });
+                    inserted++;
+                }
+            } catch (e: unknown) {
+                const msg = e instanceof Error ? e.message : String(e);
+                errors.push(`แถว ${rowNum} (${student_code}): ${msg}`);
+            }
+        }
+
+        res.json({ inserted, updated, errors });
+    }
+);
+
+/**
+ * PATCH /students/:id
+ * แก้ไขข้อมูลนักศึกษา — admin only
+ */
+router.patch('/:id',
+    authenticate,
+    authorize('admin'),
+    async (req: Request, res: Response) => {
+        const { faculty, year, status } = req.body;
+        const updates: Record<string, unknown> = { updated_at: new Date() };
+
+        if (faculty !== undefined) updates.faculty = String(faculty).trim();
+
+        if (year !== undefined) {
+            const y = parseInt(String(year), 10);
+            if (isNaN(y) || y < 1 || y > 10) {
+                res.status(400).json({ error: 'year ต้องเป็น 1–10' });
+                return;
+            }
+            updates.year = y;
+        }
+
+        if (status !== undefined) {
+            if (!['active', 'inactive'].includes(status)) {
+                res.status(400).json({ error: 'status ต้องเป็น active หรือ inactive' });
+                return;
+            }
+            updates.status = status;
+        }
+
+        const [updated] = await db('public.students')
+            .where({ id: req.params.id })
+            .update(updates)
+            .returning(['id', 'student_code', 'faculty', 'year', 'status', 'created_at', 'updated_at']);
+
+        if (!updated) {
+            res.status(404).json({ error: 'ไม่พบนักศึกษา' });
+            return;
+        }
+
+        res.json(updated);
+    }
+);
+
+/**
+ * DELETE /students/:id
+ * ลบนักศึกษา — admin only (ลบ line_links ก่อน)
+ */
+router.delete('/:id',
+    authenticate,
+    authorize('admin'),
+    async (req: Request, res: Response) => {
+        await db('public.line_links').where({ student_id: req.params.id }).delete();
+        const count = await db('public.students').where({ id: req.params.id }).delete();
+
+        if (!count) {
+            res.status(404).json({ error: 'ไม่พบนักศึกษา' });
+            return;
+        }
+
+        res.status(204).send();
+    }
+);
+
 async function logAudit(
     lineUserId: string,
     action: string,
@@ -198,8 +336,6 @@ async function logAudit(
     objectId: string
 ): Promise<void> {
     try {
-        // actor_user_id expects UUID (public.users.id) — students are not in public.users
-        // store LINE user ID in the action field as context instead
         await db('public.audit_log').insert({
             actor_user_id: null,
             actor_role: 'student',
