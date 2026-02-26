@@ -4,6 +4,7 @@ import jwt from 'jsonwebtoken';
 import { schemas } from '@nbu/shared';
 import db from '../db.js';
 import { config } from '../config.js';
+import { logger } from '../logger.js';
 import { authenticate } from '../middleware/index.js';
 
 const router = Router();
@@ -194,32 +195,27 @@ router.post('/link-line-staff', async (req: Request, res: Response) => {
         return;
     }
 
-    // Verify LINE access token → get LINE userId
+    // Verify LINE access token → get LINE userId via /v2/profile
     let lineUserId: string;
     try {
-        const verifyRes = await fetch(
-            `https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(line_access_token)}`
-        );
-        const verifyData = await verifyRes.json() as { sub?: string; error?: string };
-        if (!verifyRes.ok) {
-            import('../logger.js').then(({ logger }) =>
-                logger.warn({ status: verifyRes.status, verifyData }, 'LINE token verification failed')
-            );
+        const profileRes = await fetch('https://api.line.me/v2/profile', {
+            headers: { Authorization: `Bearer ${line_access_token}` },
+        });
+        if (!profileRes.ok) {
+            const errData = await profileRes.json().catch(() => ({}));
+            logger.warn({ status: profileRes.status, errData }, 'LINE profile fetch failed');
             res.status(401).json({ error: 'Invalid LINE access token' });
             return;
         }
-        if (!verifyData.sub) {
-            import('../logger.js').then(({ logger }) =>
-                logger.warn({ verifyData }, 'LINE verify response missing sub')
-            );
+        const profileData = await profileRes.json() as { userId?: string };
+        if (!profileData.userId) {
+            logger.warn({ profileData }, 'LINE profile response missing userId');
             res.status(401).json({ error: 'Cannot verify LINE identity' });
             return;
         }
-        lineUserId = verifyData.sub;
+        lineUserId = profileData.userId;
     } catch (err) {
-        import('../logger.js').then(({ logger }) =>
-            logger.error({ err }, 'LINE verification service error')
-        );
+        logger.error({ err }, 'LINE profile service error');
         res.status(502).json({ error: 'LINE verification service unavailable' });
         return;
     }
