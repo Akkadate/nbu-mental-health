@@ -200,17 +200,26 @@ router.post('/link-line-staff', async (req: Request, res: Response) => {
         const verifyRes = await fetch(
             `https://api.line.me/oauth2/v2.1/verify?access_token=${encodeURIComponent(line_access_token)}`
         );
+        const verifyData = await verifyRes.json() as { sub?: string; error?: string };
         if (!verifyRes.ok) {
+            import('../logger.js').then(({ logger }) =>
+                logger.warn({ status: verifyRes.status, verifyData }, 'LINE token verification failed')
+            );
             res.status(401).json({ error: 'Invalid LINE access token' });
             return;
         }
-        const verifyData = await verifyRes.json() as { sub?: string; error?: string };
         if (!verifyData.sub) {
+            import('../logger.js').then(({ logger }) =>
+                logger.warn({ verifyData }, 'LINE verify response missing sub')
+            );
             res.status(401).json({ error: 'Cannot verify LINE identity' });
             return;
         }
         lineUserId = verifyData.sub;
-    } catch {
+    } catch (err) {
+        import('../logger.js').then(({ logger }) =>
+            logger.error({ err }, 'LINE verification service error')
+        );
         res.status(502).json({ error: 'LINE verification service unavailable' });
         return;
     }
