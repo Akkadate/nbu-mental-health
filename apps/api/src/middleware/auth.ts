@@ -19,13 +19,18 @@ declare global {
  */
 export function authenticate(req: Request, res: Response, next: NextFunction): void {
     const authHeader = req.headers.authorization;
+    const cookieToken = req.cookies?.nbu_session;
 
-    if (!authHeader?.startsWith('Bearer ')) {
+    const rawToken = authHeader?.startsWith('Bearer ')
+        ? authHeader.slice(7)
+        : cookieToken ?? null;
+
+    if (!rawToken) {
         res.status(401).json({ error: 'Missing or invalid Authorization header' });
         return;
     }
 
-    const token = authHeader.slice(7);
+    const token = rawToken;
 
     try {
         const payload = jwt.verify(token, config.JWT_SECRET) as JwtPayload;

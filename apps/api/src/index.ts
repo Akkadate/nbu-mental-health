@@ -1,6 +1,7 @@
 import express from 'express';
 import cors from 'cors';
 import helmet from 'helmet';
+import cookieParser from 'cookie-parser';
 import { config } from './config.js';
 import { logger } from './logger.js';
 import { errorHandler } from './middleware/error-handler.js';
@@ -34,6 +35,9 @@ app.use(cors({
         : '*',
     credentials: true,
 }));
+
+// Cookie parsing (for cross-subdomain auth)
+app.use(cookieParser());
 
 // Body parsing — special handling for LINE webhook (needs raw body)
 app.use('/webhooks/line', express.json({
