@@ -10,7 +10,7 @@
 
 set -e  # หยุดทันทีถ้ามี error
 
-PROJECT_DIR="/opt/nbu-mental-health"
+PROJECT_DIR="/var/www/app/nbu-mental-health"
 LOG_DIR="/var/log/nbu"
 
 echo "🚀 Starting deployment..."

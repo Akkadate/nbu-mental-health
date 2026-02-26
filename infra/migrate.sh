@@ -12,7 +12,7 @@
 
 set -e
 
-PROJECT_DIR="/opt/nbu-mental-health"
+PROJECT_DIR="/var/www/app/nbu-mental-health"
 SQL_DIR="$PROJECT_DIR/SQL"
 
 # โหลด DATABASE_URL จาก .env

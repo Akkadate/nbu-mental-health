@@ -17,7 +17,7 @@ module.exports = {
         {
             name: 'nbu-api',
             script: 'apps/api/dist/index.js',
-            cwd: '/opt/nbu-mental-health',
+            cwd: '/var/www/app/nbu-mental-health',
             instances: 1,
             exec_mode: 'fork',
             env: {
@@ -36,7 +36,7 @@ module.exports = {
         {
             name: 'nbu-worker',
             script: 'apps/api/dist/worker.js',
-            cwd: '/opt/nbu-mental-health',
+            cwd: '/var/www/app/nbu-mental-health',
             instances: 1,
             exec_mode: 'fork',
             env: {
@@ -55,7 +55,7 @@ module.exports = {
             name: 'nbu-admin',
             script: 'node_modules/.bin/next',
             args: 'start -p 3202',
-            cwd: '/opt/nbu-mental-health/apps/admin',
+            cwd: '/var/www/app/nbu-mental-health/apps/admin',
             instances: 1,
             exec_mode: 'fork',
             env: {
@@ -75,7 +75,7 @@ module.exports = {
             name: 'nbu-liff',
             script: 'node_modules/.bin/next',
             args: 'start -p 3203',
-            cwd: '/opt/nbu-mental-health/apps/liff',
+            cwd: '/var/www/app/nbu-mental-health/apps/liff',
             instances: 1,
             exec_mode: 'fork',
             env: {
