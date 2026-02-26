@@ -75,10 +75,11 @@ export interface Appointment {
 
 export interface Slot {
     id: string
-    advisorId: string
-    startAt: string
-    endAt: string
-    isAvailable: boolean
+    advisor_id?: string
+    counselor_id?: string
+    start_at: string
+    end_at: string
+    is_available: boolean
 }
 
 export function getAdvisoryAppointmentsApi(from?: string, to?: string) {

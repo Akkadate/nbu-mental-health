@@ -122,15 +122,15 @@ export default function SlotManager({ initialSlots, apiPath = '/advisory/slots' 
                             <li key={slot.id} className="flex items-center justify-between px-4 py-3 hover:bg-gray-50/50">
                                 <div>
                                     <p className="text-sm font-medium text-gray-800">
-                                        {new Date(slot.startAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                                        {new Date(slot.start_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
                                         {' → '}
-                                        {new Date(slot.endAt).toLocaleString('th-TH', { timeStyle: 'short' })}
+                                        {new Date(slot.end_at).toLocaleString('th-TH', { timeStyle: 'short' })}
                                     </p>
                                     <p className="text-xs text-gray-400 mt-0.5">
-                                        {slot.isAvailable ? '✅ ว่าง' : '❌ จองแล้ว'}
+                                        {slot.is_available ? '✅ ว่าง' : '❌ จองแล้ว'}
                                     </p>
                                 </div>
-                                {slot.isAvailable && (
+                                {slot.is_available && (
                                     <button
                                         onClick={() => handleDelete(slot.id)}
                                         disabled={isPending}
