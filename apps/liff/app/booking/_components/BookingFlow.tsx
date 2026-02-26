@@ -55,7 +55,7 @@ export default function BookingFlow({ initialType, initialMode }: BookingFlowPro
         setSelectedSlotId(null)
         setSlots([])
 
-        fetch(`${API_BASE}/slots?type=${staffType}&mode=${meetingMode}&limit=30`, {
+        fetch(`${API_BASE}/appointments/slots?type=${staffType}&mode=${meetingMode}&limit=30`, {
             headers: accessToken ? { Authorization: `Bearer ${accessToken}` } : {},
         })
             .then((r) => {
