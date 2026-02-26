@@ -196,16 +196,18 @@ router.get('/faculties',
 );
 
 async function logAudit(
-    actorId: string,
+    lineUserId: string,
     action: string,
     objectType: string,
     objectId: string
 ): Promise<void> {
     try {
+        // actor_user_id expects UUID (public.users.id) — students are not in public.users
+        // store LINE user ID in the action field as context instead
         await db('public.audit_log').insert({
-            actor_user_id: actorId,
+            actor_user_id: null,
             actor_role: 'student',
-            action,
+            action: `${action}:${lineUserId}`,
             object_type: objectType,
             object_id: objectId,
         });
