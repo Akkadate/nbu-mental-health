@@ -61,7 +61,8 @@ for sql_file in \
     "$SQL_DIR/061_line_event_dedupe.sql" \
     "$SQL_DIR/070_updated_at_trigger.sql" \
     "$SQL_DIR/080_add_verify_columns.sql" \
-    "$SQL_DIR/090_staff_line_user_id.sql"
+    "$SQL_DIR/090_staff_line_user_id.sql" \
+    "$SQL_DIR/091_add_name_faculty_to_users.sql"
 do
     run_migration "$sql_file"
 done
