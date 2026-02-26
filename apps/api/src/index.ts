@@ -27,7 +27,10 @@ app.use(helmet());
 // CORS
 app.use(cors({
     origin: config.NODE_ENV === 'production'
-        ? ['https://mentalhealth.northbkk.ac.th']
+        ? [
+            'https://admin.mentalhealth.northbkk.ac.th',
+            'https://liff.mentalhealth.northbkk.ac.th',
+          ]
         : '*',
     credentials: true,
 }));
