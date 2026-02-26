@@ -22,6 +22,7 @@ export async function setSession(token: string): Promise<void> {
         sameSite: 'lax',
         maxAge: COOKIE_MAX_AGE,
         path: '/',
+        domain: process.env.COOKIE_DOMAIN ?? undefined,
     })
 }
 
