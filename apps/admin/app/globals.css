@@ -1,0 +1,90 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: oklch(0.97 0.02 250);
+  --color-brand-100: oklch(0.93 0.05 250);
+  --color-brand-200: oklch(0.87 0.09 250);
+  --color-brand-300: oklch(0.79 0.14 250);
+  --color-brand-400: oklch(0.68 0.19 250);
+  --color-brand-500: oklch(0.56 0.22 250);
+  --color-brand-600: oklch(0.47 0.20 250);
+  --color-brand-700: oklch(0.40 0.17 250);
+  --color-brand-800: oklch(0.32 0.13 250);
+  --color-brand-900: oklch(0.24 0.09 250);
+  --color-brand-950: oklch(0.16 0.06 250);
+
+  --color-surface: oklch(0.98 0.005 250);
+  --color-surface-raised: oklch(1.00 0 0);
+  --color-border: oklch(0.90 0.01 250);
+  --color-risk-low: oklch(0.60 0.18 145);
+  --color-risk-moderate: oklch(0.75 0.18 80);
+  --color-risk-high: oklch(0.65 0.20 40);
+  --color-risk-crisis: oklch(0.55 0.22 15);
+
+  --font-sans: "Inter", "Noto Sans Thai", system-ui, sans-serif;
+
+  --radius-card: 0.75rem;
+  --shadow-card: 0 1px 3px 0 oklch(0 0 0 / 0.08), 0 1px 2px -1px oklch(0 0 0 / 0.05);
+  --shadow-card-hover: 0 4px 6px -1px oklch(0 0 0 / 0.10), 0 2px 4px -2px oklch(0 0 0 / 0.06);
+}
+
+html {
+  color-scheme: light;
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-surface);
+  color: oklch(0.18 0.02 250);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Smooth transitions for interactive elements */
+*, *::before, *::after {
+  transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+  transition-duration: 150ms;
+  transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+}
+
+/* Focus styles */
+:focus-visible {
+  outline: 2px solid var(--color-brand-500);
+  outline-offset: 2px;
+}
+
+/* Scrollbar */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+::-webkit-scrollbar-track {
+  background: transparent;
+}
+::-webkit-scrollbar-thumb {
+  background: oklch(0.75 0.01 250);
+  border-radius: 999px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: oklch(0.60 0.03 250);
+}
+
+/* Card utility */
+.card {
+  background: var(--color-surface-raised);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  box-shadow: var(--shadow-card);
+  padding: 1.25rem;
+  transition: box-shadow 200ms;
+}
+.card:hover {
+  box-shadow: var(--shadow-card-hover);
+}
+
+/* Risk badges */
+.badge-low { color: var(--color-risk-low); background: oklch(0.97 0.05 145); border: 1px solid oklch(0.87 0.10 145); }
+.badge-moderate { color: var(--color-risk-moderate); background: oklch(0.97 0.05 80); border: 1px solid oklch(0.87 0.10 80); }
+.badge-high { color: var(--color-risk-high); background: oklch(0.97 0.05 40); border: 1px solid oklch(0.87 0.10 40); }
+.badge-crisis { color: oklch(1 0 0); background: var(--color-risk-crisis); border: 1px solid oklch(0.45 0.22 15); }

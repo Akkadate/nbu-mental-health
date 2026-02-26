@@ -1,0 +1,21 @@
+{
+  "name": "nbu-mental-health",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Student Mental Health Early Warning Platform — NBU",
+  "workspaces": [
+    "packages/*",
+    "apps/*"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev -w apps/api",
+    "dev:liff": "npm run dev -w apps/liff",
+    "dev:admin": "npm run dev -w apps/admin",
+    "build": "npm run build -w packages/shared && npm run build -w apps/api",
+    "test": "npm test -w apps/api",
+    "lint": "eslint ."
+  },
+  "engines": {
+    "node": ">=18.0.0"
+  }
+}

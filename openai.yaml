@@ -1,0 +1,1456 @@
+openapi: 3.0.3
+info:
+  title: Student Mental Health Early Warning Platform API
+  version: 1.0.0
+  description: >
+    LINE OA-first Mental Health Early Warning Platform for university.
+    Staff uses JWT. Student actions are primarily invoked via LINE webhook.
+servers:
+  - url: https://api.yourdomain.com
+
+tags:
+  - name: Health
+  - name: Auth
+  - name: LINE
+  - name: Students
+  - name: Screening
+  - name: Booking
+  - name: Advisory
+  - name: Clinical
+  - name: Resources
+  - name: Analytics
+  - name: Jobs
+
+components:
+  securitySchemes:
+    bearerAuth:
+      type: http
+      scheme: bearer
+      bearerFormat: JWT
+    lineSignatureAuth:
+      type: apiKey
+      in: header
+      name: x-line-signature
+
+  schemas:
+    EnvelopeSuccess:
+      type: object
+      properties:
+        data:
+          type: object
+      required: [data]
+
+    EnvelopeError:
+      type: object
+      properties:
+        error:
+          type: object
+          properties:
+            code:
+              type: string
+            message:
+              type: string
+            details:
+              type: object
+          required: [code, message]
+      required: [error]
+
+    Role:
+      type: string
+      enum: [student, advisor, counselor, admin, supervisor]
+
+    RiskLevel:
+      type: string
+      enum: [low, moderate, high, crisis]
+
+    AppointmentStatus:
+      type: string
+      enum: [scheduled, completed, cancelled, no_show]
+
+    CaseStatus:
+      type: string
+      enum: [open, acked, contacted, follow_up, closed]
+
+    Priority:
+      type: string
+      enum: [high, crisis]
+
+    Mode:
+      type: string
+      enum: [online, onsite]
+
+    HealthResponse:
+      type: object
+      properties:
+        status:
+          type: string
+          example: ok
+        timestamp:
+          type: string
+          format: date-time
+      required: [status, timestamp]
+
+    LoginRequest:
+      type: object
+      properties:
+        email:
+          type: string
+          format: email
+        password:
+          type: string
+      required: [email, password]
+
+    LoginResponse:
+      type: object
+      properties:
+        access_token:
+          type: string
+        user:
+          type: object
+          properties:
+            id:
+              type: string
+              format: uuid
+            role:
+              $ref: '#/components/schemas/Role'
+          required: [id, role]
+      required: [access_token, user]
+
+    MeResponse:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        role:
+          $ref: '#/components/schemas/Role'
+        email:
+          type: string
+          nullable: true
+      required: [id, role]
+
+    LinkLineRequest:
+      type: object
+      properties:
+        student_code:
+          type: string
+          example: "6500001"
+        verify_token:
+          type: string
+          description: "Verification token (e.g. DOB or pre-issued token)."
+          example: "2001-01-31"
+        line_user_id:
+          type: string
+          example: "Uxxxxxxxxxxxx"
+      required: [student_code, verify_token, line_user_id]
+
+    LinkLineResponse:
+      type: object
+      properties:
+        linked:
+          type: boolean
+        student_id:
+          type: string
+          format: uuid
+      required: [linked, student_id]
+
+    Student:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        student_code:
+          type: string
+        faculty:
+          type: string
+        year:
+          type: integer
+        status:
+          type: string
+          example: active
+      required: [id, student_code, faculty, year, status]
+
+    StudentImportRequest:
+      type: object
+      properties:
+        students:
+          type: array
+          items:
+            type: object
+            properties:
+              student_code:
+                type: string
+              faculty:
+                type: string
+              year:
+                type: integer
+              status:
+                type: string
+                example: active
+            required: [student_code, faculty, year]
+      required: [students]
+
+    StudentImportResponse:
+      type: object
+      properties:
+        imported:
+          type: integer
+        skipped:
+          type: integer
+      required: [imported, skipped]
+
+    ScreeningType:
+      type: string
+      enum: [stress_mini, phq9_gad7]
+
+    ScreeningIntent:
+      type: string
+      enum: [academic, stress, relationship, sleep, other, unsure]
+
+    ScreeningSubmitRequest:
+      type: object
+      properties:
+        student_id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/ScreeningType'
+        intent:
+          $ref: '#/components/schemas/ScreeningIntent'
+        answers:
+          type: object
+          description: "Raw answers; backend computes scores."
+          additionalProperties: true
+      required: [student_id, type, answers]
+
+    RoutingAction:
+      type: string
+      enum: [self_help, suggest_advisor, suggest_counselor, create_case, crisis_protocol]
+
+    NextStep:
+      type: object
+      properties:
+        type:
+          type: string
+          enum: [cta, resource, info]
+        label:
+          type: string
+        action:
+          type: string
+          nullable: true
+        resource_id:
+          type: string
+          format: uuid
+          nullable: true
+      required: [type, label]
+
+    ScreeningSubmitResponse:
+      type: object
+      properties:
+        screening_id:
+          type: string
+          format: uuid
+        scores:
+          type: object
+          properties:
+            phq9:
+              type: integer
+              nullable: true
+            gad7:
+              type: integer
+              nullable: true
+            stress:
+              type: integer
+              nullable: true
+        risk_level:
+          $ref: '#/components/schemas/RiskLevel'
+        routing_action:
+          $ref: '#/components/schemas/RoutingAction'
+        next_steps:
+          type: array
+          items:
+            $ref: '#/components/schemas/NextStep'
+      required: [screening_id, risk_level, routing_action, next_steps]
+
+    ScreeningSummary:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/ScreeningType'
+        risk_level:
+          $ref: '#/components/schemas/RiskLevel'
+        created_at:
+          type: string
+          format: date-time
+      required: [id, type, risk_level, created_at]
+
+    ScreeningListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ScreeningSummary'
+        total:
+          type: integer
+      required: [items, total]
+
+    ClinicalScreeningItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        student_id:
+          type: string
+          format: uuid
+        phq9_score:
+          type: integer
+          nullable: true
+        gad7_score:
+          type: integer
+          nullable: true
+        stress_score:
+          type: integer
+          nullable: true
+        risk_level:
+          $ref: '#/components/schemas/RiskLevel'
+        created_at:
+          type: string
+          format: date-time
+      required: [id, student_id, risk_level, created_at]
+
+    ClinicalScreeningListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ClinicalScreeningItem'
+        total:
+          type: integer
+      required: [items, total]
+
+    SlotItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        start_at:
+          type: string
+          format: date-time
+        end_at:
+          type: string
+          format: date-time
+        is_available:
+          type: boolean
+      required: [id, start_at, end_at, is_available]
+
+    SlotListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/SlotItem'
+      required: [items]
+
+    CreateSlotsRequest:
+      type: object
+      properties:
+        owner_id:
+          type: string
+          format: uuid
+          description: "advisor_id or counselor_id depending on endpoint"
+        slots:
+          type: array
+          items:
+            type: object
+            properties:
+              start_at:
+                type: string
+                format: date-time
+              end_at:
+                type: string
+                format: date-time
+            required: [start_at, end_at]
+      required: [owner_id, slots]
+
+    CreateSlotsResponse:
+      type: object
+      properties:
+        created:
+          type: integer
+      required: [created]
+
+    AppointmentType:
+      type: string
+      enum: [advisor, counselor]
+
+    CreateAppointmentRequest:
+      type: object
+      properties:
+        student_id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/AppointmentType'
+        slot_id:
+          type: string
+          format: uuid
+        mode:
+          $ref: '#/components/schemas/Mode'
+      required: [student_id, type, slot_id]
+
+    CreateAppointmentResponse:
+      type: object
+      properties:
+        appointment_id:
+          type: string
+          format: uuid
+        scheduled_at:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+      required: [appointment_id, scheduled_at, status]
+
+    AppointmentItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          $ref: '#/components/schemas/AppointmentType'
+        scheduled_at:
+          type: string
+          format: date-time
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+        mode:
+          $ref: '#/components/schemas/Mode'
+      required: [id, type, scheduled_at, status, mode]
+
+    AppointmentListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/AppointmentItem'
+        total:
+          type: integer
+      required: [items, total]
+
+    UpdateAppointmentRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/AppointmentStatus'
+      required: [status]
+
+    RoutingEvaluateRequest:
+      type: object
+      properties:
+        risk_level:
+          $ref: '#/components/schemas/RiskLevel'
+        intent:
+          $ref: '#/components/schemas/ScreeningIntent'
+      required: [risk_level, intent]
+
+    RoutingEvaluateResponse:
+      type: object
+      properties:
+        routing_action:
+          $ref: '#/components/schemas/RoutingAction'
+        explanation_code:
+          type: string
+      required: [routing_action, explanation_code]
+
+    CaseItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        student_id:
+          type: string
+          format: uuid
+        priority:
+          $ref: '#/components/schemas/Priority'
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        created_at:
+          type: string
+          format: date-time
+      required: [id, student_id, priority, status, created_at]
+
+    CaseListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/CaseItem'
+        total:
+          type: integer
+      required: [items, total]
+
+    AckCaseResponse:
+      type: object
+      properties:
+        acked:
+          type: boolean
+        acked_at:
+          type: string
+          format: date-time
+          nullable: true
+      required: [acked]
+
+    UpdateCaseRequest:
+      type: object
+      properties:
+        status:
+          $ref: '#/components/schemas/CaseStatus'
+        assigned_counselor_id:
+          type: string
+          format: uuid
+          nullable: true
+
+    CaseNoteCreateRequest:
+      type: object
+      properties:
+        case_id:
+          type: string
+          format: uuid
+        note_plaintext:
+          type: string
+      required: [case_id, note_plaintext]
+
+    CaseNoteCreateResponse:
+      type: object
+      properties:
+        note_id:
+          type: string
+          format: uuid
+      required: [note_id]
+
+    ResourceItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        category:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+          nullable: true
+        content_markdown:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+      required: [id, category, title, is_active]
+
+    ResourceListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/ResourceItem'
+        total:
+          type: integer
+      required: [items, total]
+
+    ResourceCreateRequest:
+      type: object
+      properties:
+        category:
+          type: string
+        title:
+          type: string
+        url:
+          type: string
+          nullable: true
+        content_markdown:
+          type: string
+          nullable: true
+        tags:
+          type: array
+          items:
+            type: string
+        is_active:
+          type: boolean
+      required: [category, title]
+
+    AnalyticsOverviewResponse:
+      type: object
+      properties:
+        daily:
+          type: array
+          items:
+            type: object
+            properties:
+              date:
+                type: string
+                format: date
+              risk_low:
+                type: integer
+              risk_moderate:
+                type: integer
+              risk_high:
+                type: integer
+              risk_crisis:
+                type: integer
+            required: [date, risk_low, risk_moderate, risk_high, risk_crisis]
+      required: [daily]
+
+    FacultyHeatmapItem:
+      type: object
+      properties:
+        faculty:
+          type: string
+        risk_low:
+          type: integer
+        risk_moderate:
+          type: integer
+        risk_high:
+          type: integer
+        risk_crisis:
+          type: integer
+      required: [faculty, risk_low, risk_moderate, risk_high, risk_crisis]
+
+    FacultyHeatmapResponse:
+      type: object
+      properties:
+        date:
+          type: string
+          format: date
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/FacultyHeatmapItem'
+      required: [date, items]
+
+    JobItem:
+      type: object
+      properties:
+        id:
+          type: string
+          format: uuid
+        type:
+          type: string
+        run_at:
+          type: string
+          format: date-time
+        status:
+          type: string
+          enum: [pending, running, success, failed]
+        retry_count:
+          type: integer
+        last_error:
+          type: string
+          nullable: true
+      required: [id, type, run_at, status, retry_count]
+
+    JobListResponse:
+      type: object
+      properties:
+        items:
+          type: array
+          items:
+            $ref: '#/components/schemas/JobItem'
+        total:
+          type: integer
+      required: [items, total]
+
+  responses:
+    UnauthorizedError:
+      description: Unauthorized
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
+    ForbiddenError:
+      description: Forbidden
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
+    NotFoundError:
+      description: Not Found
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
+    ValidationError:
+      description: Validation Error
+      content:
+        application/json:
+          schema:
+            $ref: '#/components/schemas/EnvelopeError'
+
+paths:
+  /health:
+    get:
+      tags: [Health]
+      summary: Health check
+      responses:
+        '200':
+          description: OK
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/HealthResponse'
+                required: [data]
+
+  /webhooks/line:
+    post:
+      tags: [LINE]
+      summary: LINE webhook receiver
+      security:
+        - lineSignatureAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              type: object
+              additionalProperties: true
+      responses:
+        '200':
+          description: Handled
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeSuccess'
+
+  /auth/login:
+    post:
+      tags: [Auth]
+      summary: Staff login (MVP email/password)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LoginRequest'
+      responses:
+        '200':
+          description: JWT token
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LoginResponse'
+                required: [data]
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /me:
+    get:
+      tags: [Auth]
+      summary: Get current staff profile
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Me
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/MeResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /admin/students/import:
+    post:
+      tags: [Students]
+      summary: Import students (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/StudentImportRequest'
+      responses:
+        '200':
+          description: Import result
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/StudentImportResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/students:
+    get:
+      tags: [Students]
+      summary: List students (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: query
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        '200':
+          description: Students list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    type: object
+                    properties:
+                      items:
+                        type: array
+                        items:
+                          $ref: '#/components/schemas/Student'
+                      total:
+                        type: integer
+                    required: [items, total]
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /students/link-line:
+    post:
+      tags: [Students]
+      summary: Link LINE userId to student_code
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/LinkLineRequest'
+      responses:
+        '200':
+          description: Linked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/LinkLineResponse'
+                required: [data]
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /screenings:
+    post:
+      tags: [Screening]
+      summary: Submit screening (student via LINE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ScreeningSubmitRequest'
+      responses:
+        '200':
+          description: Screening result + routing
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ScreeningSubmitResponse'
+                required: [data]
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /screenings/my:
+    get:
+      tags: [Screening]
+      summary: List my screenings (student)
+      parameters:
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        '200':
+          description: My screenings list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ScreeningListResponse'
+                required: [data]
+
+  /clinical/screenings:
+    get:
+      tags: [Clinical]
+      summary: List screenings (counselor)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: risk_level
+          schema:
+            $ref: '#/components/schemas/RiskLevel'
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        '200':
+          description: Clinical screenings list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ClinicalScreeningListResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /routing/evaluate:
+    post:
+      tags: [Screening]
+      summary: Evaluate routing (debug/admin/internal)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/RoutingEvaluateRequest'
+      responses:
+        '200':
+          description: Routing action
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/RoutingEvaluateResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+
+  /advisory/slots:
+    get:
+      tags: [Advisory]
+      summary: List advisor slots (availability)
+      parameters:
+        - in: query
+          name: advisor_id
+          schema: { type: string, format: uuid }
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Advisor slots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SlotListResponse'
+                required: [data]
+
+    post:
+      tags: [Advisory]
+      summary: Create advisor slots (advisor/admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSlotsRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CreateSlotsResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /clinical/slots:
+    get:
+      tags: [Clinical]
+      summary: List counselor slots (availability)
+      parameters:
+        - in: query
+          name: counselor_id
+          schema: { type: string, format: uuid }
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+      responses:
+        '200':
+          description: Counselor slots
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/SlotListResponse'
+                required: [data]
+
+    post:
+      tags: [Clinical]
+      summary: Create counselor slots (counselor/admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateSlotsRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CreateSlotsResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /appointments:
+    post:
+      tags: [Booking]
+      summary: Create appointment (student via LINE)
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CreateAppointmentRequest'
+      responses:
+        '200':
+          description: Appointment created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CreateAppointmentResponse'
+                required: [data]
+        '400':
+          $ref: '#/components/responses/ValidationError'
+
+  /appointments/my:
+    get:
+      tags: [Booking]
+      summary: List my appointments (student)
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date-time }
+        - in: query
+          name: to
+          schema: { type: string, format: date-time }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        '200':
+          description: My appointments
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AppointmentListResponse'
+                required: [data]
+
+  /appointments/{id}:
+    patch:
+      tags: [Booking]
+      summary: Update appointment status (advisor/counselor/admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateAppointmentRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeSuccess'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /clinical/cases:
+    get:
+      tags: [Clinical]
+      summary: List cases (counselor/supervisor)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema:
+            $ref: '#/components/schemas/CaseStatus'
+        - in: query
+          name: priority
+          schema:
+            $ref: '#/components/schemas/Priority'
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        '200':
+          description: Cases
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CaseListResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /clinical/cases/{id}/ack:
+    post:
+      tags: [Clinical]
+      summary: Acknowledge case
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      responses:
+        '200':
+          description: Acked
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AckCaseResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /clinical/cases/{id}:
+    patch:
+      tags: [Clinical]
+      summary: Update case status/assignment
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: path
+          name: id
+          required: true
+          schema: { type: string, format: uuid }
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/UpdateCaseRequest'
+      responses:
+        '200':
+          description: Updated
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeSuccess'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /clinical/case-notes:
+    post:
+      tags: [Clinical]
+      summary: Create encrypted case note (counselor)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/CaseNoteCreateRequest'
+      responses:
+        '200':
+          description: Note created
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/CaseNoteCreateResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /resources:
+    get:
+      tags: [Resources]
+      summary: List self-help resources
+      parameters:
+        - in: query
+          name: category
+          schema: { type: string }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        '200':
+          description: Resources list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/ResourceListResponse'
+                required: [data]
+
+  /admin/resources:
+    post:
+      tags: [Resources]
+      summary: Create resource (admin)
+      security:
+        - bearerAuth: []
+      requestBody:
+        required: true
+        content:
+          application/json:
+            schema:
+              $ref: '#/components/schemas/ResourceCreateRequest'
+      responses:
+        '200':
+          description: Created
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeSuccess'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /analytics/overview:
+    get:
+      tags: [Analytics]
+      summary: Analytics overview (aggregate only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: from
+          schema: { type: string, format: date }
+        - in: query
+          name: to
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Overview
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/AnalyticsOverviewResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /analytics/faculty-heatmap:
+    get:
+      tags: [Analytics]
+      summary: Faculty heatmap by date (aggregate only)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: date
+          required: true
+          schema: { type: string, format: date }
+      responses:
+        '200':
+          description: Heatmap
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/FacultyHeatmapResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/jobs:
+    get:
+      tags: [Jobs]
+      summary: List jobs (admin)
+      security:
+        - bearerAuth: []
+      parameters:
+        - in: query
+          name: status
+          schema: { type: string, enum: [pending, running, success, failed] }
+        - in: query
+          name: limit
+          schema: { type: integer, default: 20, minimum: 1, maximum: 200 }
+        - in: query
+          name: offset
+          schema: { type: integer, default: 0, minimum: 0 }
+      responses:
+        '200':
+          description: Jobs list
+          content:
+            application/json:
+              schema:
+                type: object
+                properties:
+                  data:
+                    $ref: '#/components/schemas/JobListResponse'
+                required: [data]
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'
+
+  /admin/jobs/run-due:
+    post:
+      tags: [Jobs]
+      summary: Run due jobs (admin/internal cron)
+      security:
+        - bearerAuth: []
+      responses:
+        '200':
+          description: Ran
+          content:
+            application/json:
+              schema:
+                $ref: '#/components/schemas/EnvelopeSuccess'
+        '401':
+          $ref: '#/components/responses/UnauthorizedError'
+        '403':
+          $ref: '#/components/responses/ForbiddenError'

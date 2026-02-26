@@ -1,0 +1,8 @@
+-- 010_schemas.sql
+BEGIN;
+
+CREATE SCHEMA IF NOT EXISTS advisory;
+CREATE SCHEMA IF NOT EXISTS clinical;
+CREATE SCHEMA IF NOT EXISTS analytics;
+
+COMMIT;

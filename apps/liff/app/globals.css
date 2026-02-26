@@ -1,0 +1,129 @@
+@import "tailwindcss";
+
+@theme {
+  --color-line-green: oklch(0.56 0.18 145);
+  --color-line-dark: oklch(0.16 0.02 145);
+  --color-bg: oklch(0.97 0.008 250);
+  --color-surface: oklch(1.00 0 0);
+  --color-border: oklch(0.90 0.01 250);
+
+  --color-risk-low: oklch(0.55 0.18 145);
+  --color-risk-moderate: oklch(0.65 0.18 80);
+  --color-risk-high: oklch(0.60 0.22 40);
+  --color-risk-crisis: oklch(0.52 0.22 15);
+
+  --font-sans: "Noto Sans Thai", "Inter", system-ui, sans-serif;
+
+  --radius-card: 1rem;
+  --radius-btn: 0.75rem;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background-color: var(--color-bg);
+  color: oklch(0.15 0.02 250);
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
+  max-width: 480px;
+  margin: 0 auto;
+}
+
+/* Mobile-first: no transitions on touch */
+@media (prefers-reduced-motion: no-preference) {
+  *, *::before, *::after {
+    transition-property: background-color, border-color, color, box-shadow, transform, opacity;
+    transition-duration: 200ms;
+    transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+  }
+}
+
+/* Focus */
+:focus-visible {
+  outline: 2px solid var(--color-line-green);
+  outline-offset: 2px;
+}
+
+/* LINE-style button */
+.btn-line {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  width: 100%;
+  padding: 0.875rem 1.5rem;
+  background: var(--color-line-green);
+  color: oklch(1 0 0);
+  font-weight: 600;
+  font-size: 1rem;
+  border-radius: var(--radius-btn);
+  border: none;
+  cursor: pointer;
+}
+.btn-line:hover {
+  background: oklch(0.50 0.18 145);
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px oklch(0.56 0.18 145 / 0.35);
+}
+.btn-line:active {
+  transform: translateY(0);
+}
+.btn-line:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+  transform: none;
+}
+
+/* Card */
+.card {
+  background: var(--color-surface);
+  border: 1px solid var(--color-border);
+  border-radius: var(--radius-card);
+  padding: 1.25rem;
+  box-shadow: 0 1px 4px oklch(0 0 0 / 0.06);
+}
+
+/* Risk colors */
+.risk-low    { color: var(--color-risk-low); }
+.risk-mod    { color: var(--color-risk-moderate); }
+.risk-high   { color: var(--color-risk-high); }
+.risk-crisis { color: var(--color-risk-crisis); }
+
+/* Likert scale options */
+.likert-option {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.75rem 1rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.75rem;
+  cursor: pointer;
+  margin-bottom: 0.5rem;
+}
+.likert-option.selected {
+  border-color: var(--color-line-green);
+  background: oklch(0.95 0.05 145 / 0.3);
+}
+
+/* Slot grid */
+.slot-chip {
+  padding: 0.5rem 0.75rem;
+  border: 2px solid var(--color-border);
+  border-radius: 0.5rem;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-align: center;
+  cursor: pointer;
+}
+.slot-chip.available:hover,
+.slot-chip.selected {
+  border-color: var(--color-line-green);
+  background: oklch(0.95 0.05 145 / 0.4);
+  color: var(--color-line-dark);
+}
+.slot-chip.unavailable {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
