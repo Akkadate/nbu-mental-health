@@ -33,7 +33,7 @@ export default function Topbar({ name, role }: TopbarProps) {
             <div className="flex items-center gap-4">
                 {/* Avatar */}
                 <div className="w-9 h-9 rounded-full bg-gradient-to-br from-brand-400 to-brand-600 flex items-center justify-center text-white text-sm font-bold select-none">
-                    {name.charAt(0).toUpperCase()}
+                    {(name ?? '?').charAt(0).toUpperCase()}
                 </div>
 
                 {/* Logout */}
