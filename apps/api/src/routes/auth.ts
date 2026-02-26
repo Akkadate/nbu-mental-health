@@ -39,7 +39,7 @@ router.post('/login', async (req: Request, res: Response) => {
     const token = jwt.sign(
         { sub: user.id, role: user.role },
         config.JWT_SECRET,
-        { expiresIn: config.JWT_EXPIRES_IN }
+        { expiresIn: config.JWT_EXPIRES_IN as any }
     );
 
     res.json({
@@ -131,7 +131,7 @@ router.post('/users',
 
         const [created] = await db('public.users')
             .insert({ email, password_hash, role, name, faculty: faculty ?? null, is_active: true })
-            .returning('id', 'role', 'email', 'name', 'faculty', 'is_active', 'created_at');
+            .returning(['id', 'role', 'email', 'name', 'faculty', 'is_active', 'created_at']);
 
         res.status(201).json(created);
     }
@@ -164,7 +164,7 @@ router.patch('/users/:id',
         const [updated] = await db('public.users')
             .where({ id })
             .update(updates)
-            .returning('id', 'role', 'email', 'name', 'faculty', 'line_user_id', 'is_active', 'created_at');
+            .returning(['id', 'role', 'email', 'name', 'faculty', 'line_user_id', 'is_active', 'created_at']);
 
         if (!updated) {
             res.status(404).json({ error: 'User not found' });
