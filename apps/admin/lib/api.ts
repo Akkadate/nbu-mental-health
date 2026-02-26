@@ -193,6 +193,46 @@ export function getFacultyHeatmapApi(date?: string) {
     return apiFetch<FacultyHeatmapRow[]>(`/analytics/faculty-heatmap${params}`)
 }
 
+// ── Students ──────────────────────────────────────────────────────
+
+export interface Student {
+    id: string
+    student_code: string
+    faculty: string
+    year: number
+    status: 'active' | 'inactive'
+    created_at: string
+    line_user_id: string | null
+    linked_at: string | null
+}
+
+export interface StudentsResponse {
+    data: Student[]
+    total: number
+    page: number
+    limit: number
+}
+
+export function getStudentsApi(params?: {
+    search?: string
+    faculty?: string
+    linked?: 'yes' | 'no'
+    page?: number
+    limit?: number
+}) {
+    const q = new URLSearchParams()
+    if (params?.search) q.set('search', params.search)
+    if (params?.faculty) q.set('faculty', params.faculty)
+    if (params?.linked) q.set('linked', params.linked)
+    if (params?.page) q.set('page', String(params.page))
+    if (params?.limit) q.set('limit', String(params.limit))
+    return apiFetch<StudentsResponse>(`/students?${q.toString()}`)
+}
+
+export function getStudentFacultiesApi() {
+    return apiFetch<string[]>('/students/faculties')
+}
+
 // ── Resources ────────────────────────────────────────────────────
 
 export interface Resource {

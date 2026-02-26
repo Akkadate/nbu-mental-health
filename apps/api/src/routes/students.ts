@@ -5,6 +5,7 @@ import { hashSensitiveData } from '../services/encryption.js';
 import { assignVerifiedMenu } from '../services/line-client.js';
 import { logger } from '../logger.js';
 import { AppError } from '../middleware/error-handler.js';
+import { authenticate, authorize } from '../middleware/index.js';
 
 const router = Router();
 
@@ -124,6 +125,75 @@ router.post('/link-line', async (req: Request, res: Response) => {
         student_id: student.id,
     });
 });
+
+/**
+ * GET /students
+ * รายชื่อนักศึกษาทั้งหมด — admin only
+ * ไม่แสดง hash fields
+ */
+router.get('/',
+    authenticate,
+    authorize('admin'),
+    async (req: Request, res: Response) => {
+        const { search, faculty, linked, page = '1', limit = '50' } = req.query;
+
+        let query = db('public.students as s')
+            .leftJoin('public.line_links as l', 'l.student_id', 's.id')
+            .select(
+                's.id',
+                's.student_code',
+                's.faculty',
+                's.year',
+                's.status',
+                's.created_at',
+                db.raw('l.line_user_id'),
+                db.raw('l.linked_at'),
+            );
+
+        if (search) {
+            query = query.where('s.student_code', 'ilike', `%${search}%`);
+        }
+        if (faculty) {
+            query = query.where('s.faculty', faculty as string);
+        }
+        if (linked === 'yes') {
+            query = query.whereNotNull('l.line_user_id');
+        } else if (linked === 'no') {
+            query = query.whereNull('l.line_user_id');
+        }
+
+        const pageNum = Math.max(1, parseInt(page as string, 10));
+        const limitNum = Math.min(100, Math.max(1, parseInt(limit as string, 10)));
+        const offset = (pageNum - 1) * limitNum;
+
+        const [rows, [{ count }]] = await Promise.all([
+            query.clone().orderBy('s.student_code').limit(limitNum).offset(offset),
+            query.clone().count('s.id as count'),
+        ]);
+
+        res.json({
+            data: rows,
+            total: parseInt(count as string, 10),
+            page: pageNum,
+            limit: limitNum,
+        });
+    }
+);
+
+/**
+ * GET /students/faculties
+ * รายชื่อคณะทั้งหมด — admin only (สำหรับ filter dropdown)
+ */
+router.get('/faculties',
+    authenticate,
+    authorize('admin'),
+    async (_req: Request, res: Response) => {
+        const rows = await db('public.students')
+            .distinct('faculty')
+            .orderBy('faculty');
+        res.json(rows.map((r: { faculty: string }) => r.faculty));
+    }
+);
 
 async function logAudit(
     actorId: string,
