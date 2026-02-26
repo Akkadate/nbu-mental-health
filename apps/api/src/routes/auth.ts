@@ -90,7 +90,7 @@ router.get('/users',
         const users = await db('public.users')
             .whereIn('role', ['advisor', 'counselor', 'admin'])
             .orderBy('created_at', 'desc')
-            .select('id', 'role', 'email', 'name', 'faculty', 'is_active', 'created_at');
+            .select('id', 'role', 'email', 'name', 'faculty', 'line_user_id', 'is_active', 'created_at');
 
         res.json(users);
     }
