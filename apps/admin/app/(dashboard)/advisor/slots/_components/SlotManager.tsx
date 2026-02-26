@@ -9,7 +9,10 @@ async function createSlot(data: { startAt: string; endAt: string }, path: string
     const res = await fetch(`${API_BASE}${path}`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify(data),
+        body: JSON.stringify({
+            start_at: new Date(data.startAt).toISOString(),
+            end_at: new Date(data.endAt).toISOString(),
+        }),
         credentials: 'include',
     })
     if (!res.ok) throw new Error('Failed to create slot')

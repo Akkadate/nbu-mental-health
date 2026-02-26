@@ -13,7 +13,7 @@ export default async function CounselorSlotsPage() {
                 <h1 className="text-xl font-bold text-gray-900">ตารางเวลาของฉัน</h1>
                 <p className="text-sm text-gray-500 mt-0.5">จัดการช่วงเวลาให้คำปรึกษา</p>
             </div>
-            <SlotManager initialSlots={slots} />
+            <SlotManager initialSlots={slots} apiPath="/clinical/slots" />
         </div>
     )
 }
