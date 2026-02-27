@@ -177,16 +177,19 @@ router.post('/link-line', async (req: Request, res: Response) => {
         await db('public.students').where({ id: student.id }).update({ verify_doc_type });
     }
 
+    let richMenuAssigned = false;
     try {
         await assignVerifiedMenu(line_user_id);
+        richMenuAssigned = true;
+        logger.info({ line_user_id, richMenuId: process.env.RICH_MENU_VERIFIED_ID }, 'Verified rich menu assigned');
     } catch (err) {
         logger.error({ err, line_user_id }, 'Failed to assign verified menu (non-blocking)');
     }
 
     await logAudit(line_user_id, 'link_line_success', 'student', student.id);
-    logger.info({ student_code, line_user_id }, 'Student linked successfully');
+    logger.info({ student_code, line_user_id, richMenuAssigned }, 'Student linked successfully');
 
-    res.json({ linked: true, student_id: student.id });
+    res.json({ linked: true, student_id: student.id, rich_menu_assigned: richMenuAssigned });
 });
 
 // ── GET /students ─────────────────────────────────────────────────────────────
