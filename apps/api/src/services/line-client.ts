@@ -39,12 +39,17 @@ export async function linkRichMenu(userId: string, richMenuId: string): Promise<
 }
 
 export async function assignGuestMenu(userId: string): Promise<void> {
-    if (!config.RICH_MENU_GUEST_ID) return;
+    if (!config.RICH_MENU_GUEST_ID) {
+        logger.warn('RICH_MENU_GUEST_ID is not set — skipping guest menu assignment');
+        return;
+    }
     await linkRichMenu(userId, config.RICH_MENU_GUEST_ID);
 }
 
 export async function assignVerifiedMenu(userId: string): Promise<void> {
-    if (!config.RICH_MENU_VERIFIED_ID) return;
+    if (!config.RICH_MENU_VERIFIED_ID) {
+        throw new Error('RICH_MENU_VERIFIED_ID is not configured in environment variables');
+    }
     await linkRichMenu(userId, config.RICH_MENU_VERIFIED_ID);
 }
 

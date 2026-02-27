@@ -5,6 +5,7 @@ import db from '../db.js';
 import { hashSensitiveData } from '../services/encryption.js';
 import { assignVerifiedMenu } from '../services/line-client.js';
 import { logger } from '../logger.js';
+import { config } from '../config.js';
 import { authenticate, authorize } from '../middleware/index.js';
 
 const router = Router();
@@ -181,7 +182,7 @@ router.post('/link-line', async (req: Request, res: Response) => {
     try {
         await assignVerifiedMenu(line_user_id);
         richMenuAssigned = true;
-        logger.info({ line_user_id, richMenuId: process.env.RICH_MENU_VERIFIED_ID }, 'Verified rich menu assigned');
+        logger.info({ line_user_id, richMenuId: config.RICH_MENU_VERIFIED_ID }, 'Verified rich menu assigned');
     } catch (err) {
         logger.error({ err, line_user_id }, 'Failed to assign verified menu (non-blocking)');
     }
