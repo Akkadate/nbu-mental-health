@@ -66,21 +66,47 @@ router.post('/', async (req: Request, res: Response) => {
 
     let caseId: string | null = null;
 
-    // Create case for HIGH and CRISIS
+    // Create or update case for HIGH and CRISIS
     if (scores.risk_level === RiskLevel.HIGH || scores.risk_level === RiskLevel.CRISIS) {
-        const [newCase] = await db('clinical.cases')
-            .insert({
-                student_id,
-                latest_screening_id: screening.id,
-                priority: scores.risk_level === RiskLevel.CRISIS ? 'crisis' : 'high',
-                status: 'open',
-            })
-            .returning('*');
+        const newPriority = scores.risk_level === RiskLevel.CRISIS ? 'crisis' : 'high';
 
-        caseId = newCase.id;
+        // Check for existing active case (not closed)
+        const existingCase = await db('clinical.cases')
+            .where({ student_id })
+            .whereNotIn('status', ['closed'])
+            .first();
+
+        let activeCase: any;
+
+        if (existingCase) {
+            // Update existing case: refresh latest screening + escalate priority if worse
+            const updatePayload: Record<string, any> = { latest_screening_id: screening.id };
+            if (existingCase.priority !== 'crisis' && newPriority === 'crisis') {
+                updatePayload.priority = 'crisis';
+            }
+            const [updated] = await db('clinical.cases')
+                .where({ id: existingCase.id })
+                .update(updatePayload)
+                .returning('*');
+            activeCase = updated;
+            logger.info({ caseId: activeCase.id, priority: activeCase.priority }, 'Clinical case updated (re-screening)');
+        } else {
+            // Insert new case
+            const [newCase] = await db('clinical.cases')
+                .insert({
+                    student_id,
+                    latest_screening_id: screening.id,
+                    priority: newPriority,
+                    status: 'open',
+                })
+                .returning('*');
+            activeCase = newCase;
+            logger.info({ caseId: activeCase.id, priority: activeCase.priority }, 'Clinical case created');
+        }
+
+        caseId = activeCase.id;
 
         // Notify counselors via LINE Messaging API (job queue)
-        // Staff LINE userId is stored directly in public.users.line_user_id
         const counselors = await db('clinical.counselors')
             .join('public.users', 'clinical.counselors.user_id', 'public.users.id')
             .whereNotNull('public.users.line_user_id')
@@ -90,15 +116,13 @@ router.post('/', async (req: Request, res: Response) => {
         const counselorLineIds = counselors.map((c: any) => c.line_user_id).filter(Boolean);
 
         if (counselorLineIds.length > 0) {
-            await createNotifyStaffJob(counselorLineIds, newCase.id, newCase.priority);
+            await createNotifyStaffJob(counselorLineIds, activeCase.id, activeCase.priority);
         }
 
         // Crisis: escalation check after 30 minutes
         if (scores.risk_level === RiskLevel.CRISIS) {
-            await createEscalationJob(newCase.id);
+            await createEscalationJob(activeCase.id);
         }
-
-        logger.info({ caseId: newCase.id, priority: newCase.priority }, 'Clinical case created');
     }
 
     // Create aggregate metrics job
