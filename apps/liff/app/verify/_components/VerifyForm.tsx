@@ -136,16 +136,28 @@ export default function VerifyForm() {
             {/* Doc number */}
             <div>
                 <label className="block text-sm font-semibold text-gray-700 mb-1.5">
-                    {form.docType === 'national_id' ? 'เลขบัตรประชาชน' : 'เลขหนังสือเดินทาง'}
+                    {form.docType === 'national_id' ? 'เลขบัตรประชาชน (13 หลัก)' : 'เลขหนังสือเดินทาง'}
                 </label>
                 <input
                     type="text"
+                    inputMode={form.docType === 'national_id' ? 'numeric' : 'text'}
                     required
                     value={form.docNumber}
-                    onChange={(e) => setForm({ ...form, docNumber: e.target.value })}
-                    placeholder={form.docType === 'national_id' ? 'x-xxxx-xxxxx-xx-x' : 'AB1234567'}
-                    className="w-full border border-[--color-border] rounded-xl px-4 py-3 text-sm focus:ring-2 focus:ring-[--color-line-green] focus:border-[--color-line-green]"
+                    onChange={(e) => {
+                        const v = form.docType === 'national_id'
+                            ? e.target.value.replace(/\D/g, '').slice(0, 13) // digits only, max 13
+                            : e.target.value.toUpperCase()                    // uppercase passport
+                        setForm({ ...form, docNumber: v })
+                    }}
+                    placeholder={form.docType === 'national_id' ? '1234567890123' : 'AA1234567'}
+                    maxLength={form.docType === 'national_id' ? 13 : 20}
+                    className="w-full border border-[--color-border] rounded-xl px-4 py-3 text-sm font-mono focus:ring-2 focus:ring-[--color-line-green] focus:border-[--color-line-green]"
                 />
+                {form.docType === 'national_id' && form.docNumber.length > 0 && (
+                    <p className="text-xs text-gray-400 mt-1">
+                        {form.docNumber.length}/13 หลัก
+                    </p>
+                )}
             </div>
 
             {/* Consent */}

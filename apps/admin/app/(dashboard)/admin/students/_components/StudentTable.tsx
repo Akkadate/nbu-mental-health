@@ -25,6 +25,25 @@ interface ImportResult {
     errors: string[]
 }
 
+interface TestLinkResult {
+    found: boolean
+    status?: string
+    verify_doc_type?: string | null
+    stored_dob?: string | null
+    stored_id_card?: string | null
+    stored_passport_no?: string | null
+    has_dob_hash?: boolean
+    has_id_card_hash?: boolean
+    has_passport_hash?: boolean
+    already_linked?: boolean
+    dob_check?: string
+    doc_check?: string
+    input_doc_normalized?: string
+    stored_doc_normalized?: string
+    verdict?: string
+    message?: string
+}
+
 const fmtDate = (d: string | null) =>
     d ? new Date(d).toLocaleDateString('th-TH', { dateStyle: 'short' }) : '—'
 
@@ -57,6 +76,14 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
     const [importResult, setImportResult] = useState<ImportResult | null>(null)
     const fileRef = useRef<HTMLInputElement>(null)
     const [isImporting, setIsImporting] = useState(false)
+
+    // Test-link modal
+    const [testStudent, setTestStudent] = useState<Student | null>(null)
+    const [testDob, setTestDob] = useState('')
+    const [testDocType, setTestDocType] = useState<'national_id' | 'passport'>('national_id')
+    const [testDocNumber, setTestDocNumber] = useState('')
+    const [testResult, setTestResult] = useState<TestLinkResult | null>(null)
+    const [isTesting, setIsTesting] = useState(false)
 
     const [isPending, startTransition] = useTransition()
 
@@ -154,6 +181,40 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                 }))
             }
         })
+    }
+
+    // ── Test Link ─────────────────────────────────────────────────────────────
+
+    const openTestLink = (s: Student) => {
+        setTestStudent(s)
+        setTestDob(s.dob ? s.dob.split('T')[0] : '')
+        setTestDocType(s.verify_doc_type === 'passport' ? 'passport' : 'national_id')
+        setTestDocNumber(s.verify_doc_type === 'passport' ? (s.passport_no ?? '') : (s.id_card ?? ''))
+        setTestResult(null)
+    }
+
+    const handleTestLink = async () => {
+        if (!testStudent) return
+        setIsTesting(true)
+        setTestResult(null)
+        try {
+            const res = await fetch(`${API_BASE}/students/test-link`, {
+                method: 'POST',
+                credentials: 'include',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    student_code: testStudent.student_code,
+                    dob: testDob,
+                    doc_type: testDocType,
+                    doc_number: testDocNumber,
+                }),
+            })
+            setTestResult(await res.json())
+        } catch {
+            setTestResult({ found: false, message: 'เกิดข้อผิดพลาดในการทดสอบ' })
+        } finally {
+            setIsTesting(false)
+        }
     }
 
     // ── Import ────────────────────────────────────────────────────────────────
@@ -314,6 +375,13 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                                         <td className="px-4 py-3 text-right whitespace-nowrap">
                                             <div className="flex items-center justify-end gap-1.5">
                                                 <button
+                                                    onClick={() => openTestLink(s)}
+                                                    title="ทดสอบว่าข้อมูลที่นักศึกษากรอกจะเชื่อม LINE ได้หรือไม่"
+                                                    className="text-xs px-2.5 py-1 rounded-lg border border-blue-200 text-blue-600 hover:bg-blue-50 transition-colors"
+                                                >
+                                                    🔍 ทดสอบ
+                                                </button>
+                                                <button
                                                     onClick={() => openEdit(s)}
                                                     disabled={isPending}
                                                     className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50"
@@ -426,6 +494,105 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                             </button>
                             <button onClick={() => setEditStudent(null)} className="btn-secondary flex-1">ยกเลิก</button>
                         </div>
+                    </div>
+                </div>
+            )}
+
+            {/* ── Test Link Modal ──────────────────────────────────── */}
+            {testStudent && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4 max-h-[90vh] overflow-y-auto">
+                        <div>
+                            <h2 className="text-base font-bold text-gray-900">ทดสอบการเชื่อม LINE</h2>
+                            <p className="text-xs text-gray-500 mt-0.5">รหัส: {testStudent.student_code}</p>
+                        </div>
+
+                        <div className="bg-blue-50 border border-blue-200 rounded-lg px-3 py-2 text-xs text-blue-700">
+                            กรอกข้อมูลเดียวกับที่นักศึกษาจะกรอกใน LIFF แล้วกด "ทดสอบ" เพื่อดูว่าระบบจะยอมรับหรือไม่
+                        </div>
+
+                        <div className="space-y-3">
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">วันเกิด (YYYY-MM-DD)</label>
+                                <input
+                                    className="input" type="date"
+                                    value={testDob}
+                                    onChange={(e) => setTestDob(e.target.value)}
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">ประเภทเอกสาร</label>
+                                <div className="flex gap-2">
+                                    {(['national_id', 'passport'] as const).map((t) => (
+                                        <button
+                                            key={t}
+                                            type="button"
+                                            onClick={() => { setTestDocType(t); setTestDocNumber('') }}
+                                            className={`flex-1 py-1.5 rounded-lg border text-xs font-medium transition-colors ${testDocType === t ? 'bg-brand-600 text-white border-brand-600' : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300'}`}
+                                        >
+                                            {t === 'national_id' ? 'บัตรประชาชน' : 'Passport'}
+                                        </button>
+                                    ))}
+                                </div>
+                            </div>
+                            <div>
+                                <label className="block text-xs font-medium text-gray-600 mb-1">
+                                    {testDocType === 'national_id' ? 'เลขบัตรประชาชน (ตัวเลข ไม่มีขีด)' : 'เลข Passport'}
+                                </label>
+                                <input
+                                    className="input font-mono"
+                                    value={testDocNumber}
+                                    onChange={(e) => setTestDocNumber(
+                                        testDocType === 'national_id'
+                                            ? e.target.value.replace(/\D/g, '').slice(0, 13)
+                                            : e.target.value.toUpperCase()
+                                    )}
+                                    placeholder={testDocType === 'national_id' ? '1234567890123' : 'AA1234567'}
+                                />
+                            </div>
+                        </div>
+
+                        <button
+                            onClick={handleTestLink}
+                            disabled={isTesting}
+                            className="btn-primary w-full disabled:opacity-50"
+                        >
+                            {isTesting ? 'กำลังทดสอบ...' : '🔍 ทดสอบ'}
+                        </button>
+
+                        {testResult && (
+                            <div className={`rounded-xl border p-4 space-y-2 text-xs ${testResult.verdict?.startsWith('PASS') ? 'bg-green-50 border-green-200' : testResult.verdict?.startsWith('ALREADY') ? 'bg-blue-50 border-blue-200' : 'bg-red-50 border-red-200'}`}>
+                                <p className="text-sm font-bold">
+                                    {testResult.verdict ?? (testResult.found ? '—' : testResult.message)}
+                                </p>
+                                {testResult.found && (
+                                    <div className="space-y-1 text-gray-700">
+                                        <p>สถานะนักศึกษา: <b>{testResult.status}</b></p>
+                                        {testResult.already_linked && <p className="text-blue-700">⚠️ เชื่อม LINE ไปแล้ว</p>}
+                                        <hr className="border-gray-200 my-1" />
+                                        <p>วันเกิดในระบบ: <b className="font-mono">{testResult.stored_dob ?? '—'}</b>
+                                            {testResult.has_dob_hash ? ' (มี hash)' : ' (ไม่มี hash)'}
+                                        </p>
+                                        <p>วันเกิดที่ทดสอบ: <b className="font-mono">{testDob || '—'}</b></p>
+                                        <p className={`font-semibold ${String(testResult.dob_check).startsWith('FAIL') ? 'text-red-700' : 'text-green-700'}`}>
+                                            DOB: {testResult.dob_check}
+                                        </p>
+                                        <hr className="border-gray-200 my-1" />
+                                        <p>เอกสารในระบบ: <b className="font-mono">
+                                            {testDocType === 'national_id' ? (testResult.stored_id_card ?? testResult.stored_doc_normalized ?? '—') : (testResult.stored_passport_no ?? testResult.stored_doc_normalized ?? '—')}
+                                        </b>
+                                            {(testDocType === 'national_id' ? testResult.has_id_card_hash : testResult.has_passport_hash) ? ' (มี hash)' : ' (ไม่มี hash)'}
+                                        </p>
+                                        <p>เอกสารที่ทดสอบ (normalized): <b className="font-mono">{testResult.input_doc_normalized ?? testDocNumber}</b></p>
+                                        <p className={`font-semibold ${String(testResult.doc_check).startsWith('FAIL') ? 'text-red-700' : 'text-green-700'}`}>
+                                            เอกสาร: {testResult.doc_check}
+                                        </p>
+                                    </div>
+                                )}
+                            </div>
+                        )}
+
+                        <button onClick={() => { setTestStudent(null); setTestResult(null) }} className="btn-secondary w-full">ปิด</button>
                     </div>
                 </div>
             )}

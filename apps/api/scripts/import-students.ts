@@ -30,6 +30,16 @@ function hashData(value: string): string {
     return crypto.createHash('sha256').update(HASH_SALT + ':' + value).digest('hex')
 }
 
+/** Remove all non-digit characters from ID card (same as API normalization) */
+function normalizeIdCard(s: string): string {
+    return s.replace(/\D/g, '')
+}
+
+/** Trim + uppercase passport (same as API normalization) */
+function normalizePassport(s: string): string {
+    return s.trim().toUpperCase()
+}
+
 interface CsvRow {
     student_code: string
     faculty: string
@@ -106,15 +116,15 @@ async function main() {
             continue
         }
 
-        // Prepare record
+        // Prepare record (normalize before hashing — must match API logic)
         const record: Record<string, unknown> = {
             student_code: row.student_code.trim(),
             faculty: row.faculty.trim(),
             year: yearNum,
             status: 'active',
             dob_hash: hashData(row.dob.trim()),
-            id_card_hash: hasIdCard ? hashData(hasIdCard.replace(/\s/g, '')) : null,
-            passport_hash: hasPassport ? hashData(hasPassport.trim().toUpperCase()) : null,
+            id_card_hash: hasIdCard ? hashData(normalizeIdCard(hasIdCard)) : null,
+            passport_hash: hasPassport ? hashData(normalizePassport(hasPassport)) : null,
             verify_doc_type: hasIdCard ? 'national_id' : 'passport',
         }
 
