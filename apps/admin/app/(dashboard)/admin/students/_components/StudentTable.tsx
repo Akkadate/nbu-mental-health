@@ -183,6 +183,25 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
         })
     }
 
+    // ── Unlink LINE ───────────────────────────────────────────────────────────
+
+    const handleUnlink = (s: Student) => {
+        if (!confirm(`ยืนยันการยกเลิกการเชื่อม LINE ของ "${s.student_code}"?\nนักศึกษาจะต้องยืนยันตัวตนใหม่อีกครั้ง`)) return
+        startTransition(async () => {
+            const res = await fetch(`${API_BASE}/students/${s.id}/line-link`, {
+                method: 'DELETE', credentials: 'include',
+            })
+            if (res.ok) {
+                setData((prev) => ({
+                    ...prev,
+                    data: prev.data.map((x) =>
+                        x.id === s.id ? { ...x, line_user_id: null, linked_at: null } : x
+                    ),
+                }))
+            }
+        })
+    }
+
     // ── Test Link ─────────────────────────────────────────────────────────────
 
     const openTestLink = (s: Student) => {
@@ -381,6 +400,16 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                                                 >
                                                     🔍 ทดสอบ
                                                 </button>
+                                                {s.line_user_id && (
+                                                    <button
+                                                        onClick={() => handleUnlink(s)}
+                                                        disabled={isPending}
+                                                        title="ยกเลิกการเชื่อม LINE (นักศึกษาจะต้องยืนยันใหม่)"
+                                                        className="text-xs px-2.5 py-1 rounded-lg border border-orange-200 text-orange-600 hover:bg-orange-50 transition-colors disabled:opacity-50"
+                                                    >
+                                                        🔗 ยกเลิก LINE
+                                                    </button>
+                                                )}
                                                 <button
                                                     onClick={() => openEdit(s)}
                                                     disabled={isPending}

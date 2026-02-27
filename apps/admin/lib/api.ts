@@ -254,6 +254,10 @@ export function deleteStudentApi(id: string) {
     return apiFetch<void>(`/students/${id}`, { method: 'DELETE' })
 }
 
+export function unlinkStudentLineApi(id: string) {
+    return apiFetch<{ unlinked: boolean; student_code: string }>(`/students/${id}/line-link`, { method: 'DELETE' })
+}
+
 export function importStudentsApi(csv: string) {
     return apiFetch<{ inserted: number; updated: number; errors: string[] }>('/students/import', {
         method: 'POST',

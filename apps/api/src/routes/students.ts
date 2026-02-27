@@ -526,6 +526,33 @@ router.patch('/:id',
     }
 );
 
+// ── DELETE /students/:id/line-link ───────────────────────────────────────────
+/**
+ * ยกเลิกการเชื่อม LINE ของนักศึกษา (ไม่ลบข้อมูลนักศึกษา)
+ * ใช้เมื่อนักศึกษาต้องการเชื่อม LINE ใหม่ หรือเปลี่ยนโทรศัพท์
+ */
+router.delete('/:id/line-link',
+    authenticate,
+    authorize('admin'),
+    async (req: Request, res: Response) => {
+        const student = await db('public.students').where({ id: req.params.id }).first();
+        if (!student) {
+            res.status(404).json({ error: 'ไม่พบนักศึกษา' });
+            return;
+        }
+
+        const deleted = await db('public.line_links').where({ student_id: req.params.id }).delete();
+
+        if (!deleted) {
+            res.status(404).json({ error: 'นักศึกษานี้ยังไม่ได้เชื่อม LINE' });
+            return;
+        }
+
+        logger.info({ student_code: student.student_code }, 'LINE link removed by admin');
+        res.json({ unlinked: true, student_code: student.student_code });
+    }
+);
+
 // ── DELETE /students/:id ──────────────────────────────────────────────────────
 
 router.delete('/:id',
