@@ -1,10 +1,18 @@
 import { z } from 'zod';
 import dotenv from 'dotenv';
 import path from 'path';
+import { existsSync } from 'fs';
 
-// In monorepo: npm run dev runs from project root, so .env is at cwd
-// Fallback: check parent dirs
-dotenv.config({ path: path.resolve(process.cwd(), '.env') });
+// Resolve .env: try cwd first (dev from monorepo root), then walk up from __dirname
+// __dirname in production = apps/api/dist/ → ../../../ = monorepo root
+const envCandidates = [
+    path.resolve(process.cwd(), '.env'),
+    path.resolve(__dirname, '../../../.env'),
+    path.resolve(__dirname, '../../.env'),
+];
+const envPath = envCandidates.find(p => existsSync(p));
+dotenv.config({ path: envPath });
+console.log(`[config] Loading .env from: ${envPath ?? '(not found — using process.env)'} | cwd=${process.cwd()}`);
 
 const envSchema = z.object({
     // Database
