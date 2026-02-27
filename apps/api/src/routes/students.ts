@@ -155,7 +155,12 @@ router.get('/',
                 .select(
                     's.id', 's.student_code', 's.faculty', 's.year', 's.status',
                     's.created_at', 's.updated_at',
-                    db.raw('l.line_user_id'), db.raw('l.linked_at')
+                    's.verify_doc_type',
+                    db.raw('l.line_user_id'),
+                    db.raw('l.linked_at'),
+                    db.raw('(s.dob_hash IS NOT NULL) as has_dob'),
+                    db.raw('(s.id_card_hash IS NOT NULL) as has_id_card'),
+                    db.raw('(s.passport_hash IS NOT NULL) as has_passport'),
                 )
         ).orderBy('s.student_code').limit(limitNum).offset(offset);
 

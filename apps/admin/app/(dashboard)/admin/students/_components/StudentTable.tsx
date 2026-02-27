@@ -10,25 +10,54 @@ interface Props {
     faculties: string[]
 }
 
-// ── Edit modal state ──────────────────────────────────────────────────────────
 interface EditForm {
     faculty: string
     year: string
     status: 'active' | 'inactive'
 }
 
-// ── Import result ─────────────────────────────────────────────────────────────
 interface ImportResult {
     inserted: number
     updated: number
     errors: string[]
 }
 
+// ── Helpers ───────────────────────────────────────────────────────────────────
+
+const fmtDate = (d: string | null) =>
+    d ? new Date(d).toLocaleDateString('th-TH', { dateStyle: 'short' }) : '—'
+
+function DocBadge({ s }: { s: Student }) {
+    if (s.verify_doc_type === 'national_id') {
+        return (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-blue-50 text-blue-700 border border-blue-200">
+                บัตร ปชช.
+            </span>
+        )
+    }
+    if (s.verify_doc_type === 'passport') {
+        return (
+            <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-indigo-50 text-indigo-700 border border-indigo-200">
+                Passport
+            </span>
+        )
+    }
+    return (
+        <span className="text-xs text-gray-400">—</span>
+    )
+}
+
+function CheckMark({ ok }: { ok: boolean }) {
+    return ok
+        ? <span className="text-green-600 text-sm">✓</span>
+        : <span className="text-gray-300 text-sm">✗</span>
+}
+
 export default function StudentTable({ initialData, faculties: initialFaculties }: Props) {
     const [data, setData] = useState<StudentsResponse>(initialData)
     const [faculties, setFaculties] = useState<string[]>(initialFaculties)
 
-    // Filter state
+    // Filter
     const [search, setSearch] = useState('')
     const [faculty, setFaculty] = useState('')
     const [linked, setLinked] = useState('')
@@ -42,11 +71,11 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
     const [showImport, setShowImport] = useState(false)
     const [importResult, setImportResult] = useState<ImportResult | null>(null)
     const fileRef = useRef<HTMLInputElement>(null)
-
-    const [isPending, startTransition] = useTransition()
     const [isImporting, setIsImporting] = useState(false)
 
-    // ── Fetch helpers ─────────────────────────────────────────────────────────
+    const [isPending, startTransition] = useTransition()
+
+    // ── Data fetching ─────────────────────────────────────────────────────────
 
     const fetchStudents = (params: { search?: string; faculty?: string; linked?: string; page?: number }) => {
         startTransition(async () => {
@@ -56,7 +85,6 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
             if (params.linked) q.set('linked', params.linked)
             if (params.page) q.set('page', String(params.page))
             q.set('limit', '50')
-
             const res = await fetch(`${API_BASE}/students?${q.toString()}`, { credentials: 'include' })
             if (res.ok) setData(await res.json())
         })
@@ -67,18 +95,14 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
         if (res.ok) setFaculties(await res.json())
     }
 
-    // ── Filter actions ────────────────────────────────────────────────────────
+    // ── Filter ────────────────────────────────────────────────────────────────
 
     const handleSearch = () => fetchStudents({ search, faculty, linked })
-
     const handleReset = () => {
-        setSearch('')
-        setFaculty('')
-        setLinked('')
+        setSearch(''); setFaculty(''); setLinked('')
         fetchStudents({})
     }
-
-    const handlePage = (newPage: number) => fetchStudents({ search, faculty, linked, page: newPage })
+    const handlePage = (p: number) => fetchStudents({ search, faculty, linked, page: p })
 
     // ── Edit ──────────────────────────────────────────────────────────────────
 
@@ -91,10 +115,7 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
     const handleEditSave = () => {
         if (!editStudent) return
         const yr = parseInt(editForm.year, 10)
-        if (isNaN(yr) || yr < 1 || yr > 10) {
-            setEditError('ชั้นปีต้องเป็น 1–10')
-            return
-        }
+        if (isNaN(yr) || yr < 1 || yr > 10) { setEditError('ชั้นปีต้องเป็น 1–10'); return }
         startTransition(async () => {
             const res = await fetch(`${API_BASE}/students/${editStudent.id}`, {
                 method: 'PATCH',
@@ -110,7 +131,7 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
             const updated: Student = await res.json()
             setData((prev) => ({
                 ...prev,
-                data: prev.data.map((s) => (s.id === updated.id ? { ...s, ...updated } : s)),
+                data: prev.data.map((s) => s.id === updated.id ? { ...s, ...updated } : s),
             }))
             await refreshFaculties()
             setEditStudent(null)
@@ -123,8 +144,7 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
         if (!confirm(`ยืนยันการลบนักศึกษา "${s.student_code}"?\nข้อมูลการเชื่อม LINE จะถูกลบด้วย`)) return
         startTransition(async () => {
             const res = await fetch(`${API_BASE}/students/${s.id}`, {
-                method: 'DELETE',
-                credentials: 'include',
+                method: 'DELETE', credentials: 'include',
             })
             if (res.ok || res.status === 204) {
                 setData((prev) => ({
@@ -136,19 +156,13 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
         })
     }
 
-    // ── Import CSV ────────────────────────────────────────────────────────────
-
-    const openImport = () => {
-        setImportResult(null)
-        setShowImport(true)
-    }
+    // ── Import ────────────────────────────────────────────────────────────────
 
     const handleImportFile = async (e: React.ChangeEvent<HTMLInputElement>) => {
         const file = e.target.files?.[0]
         if (!file) return
         setIsImporting(true)
         setImportResult(null)
-
         try {
             const csv = await file.text()
             const res = await fetch(`${API_BASE}/students/import`, {
@@ -159,7 +173,6 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
             })
             const result: ImportResult = await res.json()
             setImportResult(result)
-            // Refresh table + faculties after import
             await refreshFaculties()
             fetchStudents({ search, faculty, linked })
         } catch {
@@ -170,31 +183,23 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
         }
     }
 
-    // ── Render helpers ────────────────────────────────────────────────────────
+    // ── Render ────────────────────────────────────────────────────────────────
 
     const totalPages = Math.ceil(data.total / data.limit)
-
-    const fmtDate = (d: string | null) =>
-        d ? new Date(d).toLocaleDateString('th-TH', { dateStyle: 'short' }) : '—'
-
-    const fmtDatetime = (d: string | null) =>
-        d ? new Date(d).toLocaleDateString('th-TH', { dateStyle: 'short' }) : '—'
 
     return (
         <div className="space-y-4">
 
-            {/* ── Toolbar: Filter + Import ─────────────────────────── */}
+            {/* ── Filter bar ────────────────────────────────────────── */}
             <div className="card">
                 <div className="grid grid-cols-1 sm:grid-cols-3 gap-3 mb-3">
                     <div>
                         <label className="block text-xs font-medium text-gray-600 mb-1">ค้นหารหัสนักศึกษา</label>
                         <input
-                            type="text"
-                            value={search}
+                            type="text" value={search}
                             onChange={(e) => setSearch(e.target.value)}
                             onKeyDown={(e) => e.key === 'Enter' && handleSearch()}
-                            placeholder="เช่น 6501..."
-                            className="input"
+                            placeholder="เช่น 6501..." className="input"
                         />
                     </div>
                     <div>
@@ -213,25 +218,19 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                         </select>
                     </div>
                 </div>
-                <div className="flex flex-wrap gap-2">
-                    <button
-                        onClick={handleSearch}
-                        disabled={isPending}
-                        className="btn-primary text-sm disabled:opacity-50"
-                    >
+                <div className="flex flex-wrap items-center gap-2">
+                    <button onClick={handleSearch} disabled={isPending} className="btn-primary text-sm disabled:opacity-50">
                         {isPending ? 'กำลังค้นหา...' : 'ค้นหา'}
                     </button>
                     <button onClick={handleReset} className="btn-secondary text-sm">รีเซ็ต</button>
-                    <div className="ml-auto">
-                        <button onClick={openImport} className="btn-secondary text-sm">
-                            ↑ นำเข้า CSV
-                        </button>
-                    </div>
+                    <button onClick={() => { setImportResult(null); setShowImport(true) }} className="btn-secondary text-sm ml-auto">
+                        ↑ นำเข้า CSV
+                    </button>
                 </div>
             </div>
 
-            {/* ── Stats ────────────────────────────────────────────── */}
-            <div className="grid grid-cols-3 gap-3">
+            {/* ── Stats ─────────────────────────────────────────────── */}
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
                 <div className="card py-3 text-center">
                     <p className="text-2xl font-bold text-gray-900">{data.total}</p>
                     <p className="text-xs text-gray-500 mt-0.5">ทั้งหมด</p>
@@ -240,7 +239,13 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                     <p className="text-2xl font-bold text-green-600">
                         {data.data.filter((s) => s.line_user_id).length}
                     </p>
-                    <p className="text-xs text-gray-500 mt-0.5">เชื่อม LINE แล้ว</p>
+                    <p className="text-xs text-gray-500 mt-0.5">เชื่อม LINE</p>
+                </div>
+                <div className="card py-3 text-center">
+                    <p className="text-2xl font-bold text-blue-600">
+                        {data.data.filter((s) => s.has_dob).length}
+                    </p>
+                    <p className="text-xs text-gray-500 mt-0.5">มีข้อมูลวันเกิด</p>
                 </div>
                 <div className="card py-3 text-center">
                     <p className="text-2xl font-bold text-amber-500">
@@ -250,9 +255,18 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                 </div>
             </div>
 
-            {/* ── Table ────────────────────────────────────────────── */}
+            {/* ── Privacy note ──────────────────────────────────────── */}
+            <div className="bg-blue-50 border border-blue-200 rounded-xl px-4 py-2.5 flex items-start gap-2">
+                <span className="text-blue-400 text-sm shrink-0 mt-0.5">ℹ</span>
+                <p className="text-xs text-blue-700">
+                    วันเกิดและเลขเอกสารยืนยันตัวตนถูกเก็บเป็น <strong>hash เข้ารหัส</strong> เพื่อความปลอดภัย
+                    — ระบบแสดงเฉพาะว่ามีข้อมูลหรือไม่ (✓/✗) ไม่สามารถดูข้อมูลจริงได้
+                </p>
+            </div>
+
+            {/* ── Table ─────────────────────────────────────────────── */}
             <div className="card p-0 overflow-hidden">
-                <div className="px-4 py-3 border-b border-[--color-border] bg-gray-50/50 flex items-center justify-between">
+                <div className="px-4 py-3 border-b border-[--color-border] bg-gray-50/50">
                     <p className="text-sm font-medium text-gray-700">
                         แสดง {data.data.length} จาก {data.total} คน
                     </p>
@@ -267,41 +281,53 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                                 <tr className="border-b border-[--color-border] bg-gray-50/50">
                                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">รหัสนักศึกษา</th>
                                     <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500">คณะ</th>
-                                    <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500">ชั้นปี</th>
-                                    <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500">สถานะ</th>
-                                    <th className="text-center px-4 py-2.5 text-xs font-semibold text-gray-500">LINE</th>
-                                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">เชื่อมเมื่อ</th>
-                                    <th className="text-left px-4 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">สร้างเมื่อ</th>
-                                    <th className="px-4 py-2.5 text-xs font-semibold text-gray-500"></th>
+                                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500">ปี</th>
+                                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500">สถานะ</th>
+                                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500">LINE</th>
+                                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">วันเกิด</th>
+                                    <th className="text-center px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">เอกสาร</th>
+                                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">เชื่อมเมื่อ</th>
+                                    <th className="text-left px-3 py-2.5 text-xs font-semibold text-gray-500 whitespace-nowrap">สร้างเมื่อ</th>
+                                    <th className="px-4 py-2.5"></th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-[--color-border]">
                                 {data.data.map((s) => (
                                     <tr key={s.id} className="hover:bg-gray-50/50">
                                         <td className="px-4 py-3 font-mono text-sm text-gray-900 whitespace-nowrap">{s.student_code}</td>
-                                        <td className="px-4 py-3 text-gray-700 max-w-[180px] truncate">{s.faculty}</td>
-                                        <td className="px-4 py-3 text-center text-gray-600">ปี {s.year}</td>
-                                        <td className="px-4 py-3 text-center">
-                                            <span className={`inline-flex items-center text-xs px-2 py-0.5 rounded-full border font-medium ${s.status === 'active'
+                                        <td className="px-4 py-3 text-gray-700 max-w-[160px] truncate" title={s.faculty}>{s.faculty}</td>
+                                        <td className="px-3 py-3 text-center text-gray-600">{s.year}</td>
+                                        <td className="px-3 py-3 text-center">
+                                            <span className={`inline-flex text-xs px-2 py-0.5 rounded-full border font-medium ${s.status === 'active'
                                                 ? 'bg-green-50 text-green-700 border-green-200'
-                                                : 'bg-red-50 text-red-600 border-red-200'
-                                                }`}>
+                                                : 'bg-red-50 text-red-600 border-red-200'}`}>
                                                 {s.status === 'active' ? 'ใช้งาน' : 'ปิดใช้'}
                                             </span>
                                         </td>
-                                        <td className="px-4 py-3 text-center">
+                                        <td className="px-3 py-3 text-center">
                                             {s.line_user_id ? (
-                                                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200">
-                                                    ✓ เชื่อมแล้ว
+                                                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-green-50 text-green-700 border border-green-200 whitespace-nowrap">
+                                                    ✓ เชื่อม
                                                 </span>
                                             ) : (
-                                                <span className="inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full bg-gray-50 text-gray-400 border border-gray-200">
-                                                    ยังไม่เชื่อม
-                                                </span>
+                                                <span className="text-xs text-gray-400 whitespace-nowrap">ยังไม่เชื่อม</span>
                                             )}
                                         </td>
-                                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{fmtDate(s.linked_at)}</td>
-                                        <td className="px-4 py-3 text-xs text-gray-400 whitespace-nowrap">{fmtDatetime(s.created_at)}</td>
+                                        <td className="px-3 py-3 text-center">
+                                            <span title={s.has_dob ? 'มีข้อมูลวันเกิด (เก็บเป็น hash)' : 'ไม่มีข้อมูลวันเกิด'}>
+                                                <CheckMark ok={s.has_dob} />
+                                            </span>
+                                        </td>
+                                        <td className="px-3 py-3 text-center">
+                                            <div className="flex flex-col items-center gap-0.5">
+                                                <DocBadge s={s} />
+                                                {(s.has_id_card || s.has_passport) && (
+                                                    <span className="text-xs text-gray-400">hash ✓</span>
+                                                )}
+                                            </div>
+                                        </td>
+                                        <td className="px-3 py-3 text-xs text-gray-400 whitespace-nowrap">{fmtDate(s.linked_at)}</td>
+                                        <td className="px-3 py-3 text-xs text-gray-400 whitespace-nowrap">{fmtDate(s.created_at)}</td>
                                         <td className="px-4 py-3 text-right whitespace-nowrap">
                                             <div className="flex items-center justify-end gap-1.5">
                                                 <button
@@ -328,34 +354,28 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                 )}
             </div>
 
-            {/* ── Pagination ───────────────────────────────────────── */}
+            {/* ── Pagination ────────────────────────────────────────── */}
             {totalPages > 1 && (
                 <div className="flex items-center justify-center gap-2">
                     <button
                         onClick={() => handlePage(data.page - 1)}
                         disabled={data.page <= 1 || isPending}
                         className="px-3 py-1.5 text-sm rounded-lg border border-[--color-border] text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        ← ก่อนหน้า
-                    </button>
+                    >← ก่อนหน้า</button>
                     <span className="text-sm text-gray-500">หน้า {data.page} / {totalPages}</span>
                     <button
                         onClick={() => handlePage(data.page + 1)}
                         disabled={data.page >= totalPages || isPending}
                         className="px-3 py-1.5 text-sm rounded-lg border border-[--color-border] text-gray-600 hover:bg-gray-50 disabled:opacity-40 disabled:cursor-not-allowed"
-                    >
-                        ถัดไป →
-                    </button>
+                    >ถัดไป →</button>
                 </div>
             )}
 
-            {/* ── Edit Modal ───────────────────────────────────────── */}
+            {/* ── Edit Modal ────────────────────────────────────────── */}
             {editStudent && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-                        <h2 className="text-base font-bold text-gray-900">
-                            แก้ไขข้อมูล — {editStudent.student_code}
-                        </h2>
+                        <h2 className="text-base font-bold text-gray-900">แก้ไขข้อมูล — {editStudent.student_code}</h2>
                         {editError && (
                             <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{editError}</p>
                         )}
@@ -372,10 +392,7 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                             <div>
                                 <label className="block text-xs font-medium text-gray-600 mb-1">ชั้นปี (1–10) *</label>
                                 <input
-                                    className="input"
-                                    type="number"
-                                    min={1}
-                                    max={10}
+                                    className="input" type="number" min={1} max={10}
                                     value={editForm.year}
                                     onChange={(e) => setEditForm((f) => ({ ...f, year: e.target.value }))}
                                 />
@@ -383,8 +400,7 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                             <div>
                                 <label className="block text-xs font-medium text-gray-600 mb-1">สถานะ</label>
                                 <select
-                                    className="input"
-                                    value={editForm.status}
+                                    className="input" value={editForm.status}
                                     onChange={(e) => setEditForm((f) => ({ ...f, status: e.target.value as 'active' | 'inactive' }))}
                                 >
                                     <option value="active">ใช้งาน (active)</option>
@@ -393,37 +409,31 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                             </div>
                         </div>
                         <div className="flex gap-2 pt-1">
-                            <button
-                                onClick={handleEditSave}
-                                disabled={isPending}
-                                className="btn-primary flex-1 disabled:opacity-50"
-                            >
+                            <button onClick={handleEditSave} disabled={isPending} className="btn-primary flex-1 disabled:opacity-50">
                                 {isPending ? 'กำลังบันทึก...' : 'บันทึก'}
                             </button>
-                            <button
-                                onClick={() => setEditStudent(null)}
-                                className="btn-secondary flex-1"
-                            >
-                                ยกเลิก
-                            </button>
+                            <button onClick={() => setEditStudent(null)} className="btn-secondary flex-1">ยกเลิก</button>
                         </div>
                     </div>
                 </div>
             )}
 
-            {/* ── Import CSV Modal ─────────────────────────────────── */}
+            {/* ── Import CSV Modal ──────────────────────────────────── */}
             {showImport && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
                     <div className="bg-white rounded-2xl shadow-xl w-full max-w-md p-6 space-y-4">
                         <h2 className="text-base font-bold text-gray-900">นำเข้านักศึกษาจาก CSV</h2>
 
-                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-600 space-y-1">
-                            <p className="font-medium text-gray-700">รูปแบบ CSV (หัวคอลัมน์บรรทัดแรก):</p>
-                            <code className="block font-mono bg-white border border-gray-200 rounded px-2 py-1 text-gray-800">
+                        <div className="bg-gray-50 border border-gray-200 rounded-lg px-3 py-2.5 text-xs text-gray-600 space-y-1.5">
+                            <p className="font-semibold text-gray-700">รูปแบบ CSV (หัวคอลัมน์บรรทัดแรก):</p>
+                            <code className="block font-mono bg-white border border-gray-200 rounded px-2 py-1.5 text-gray-800 select-all">
                                 student_code,faculty,year,status
                             </code>
-                            <p>- <b>status</b> ไม่จำเป็นต้องใส่ (ค่าเริ่มต้น: active)</p>
-                            <p>- ถ้ารหัสซ้ำ จะ <b>อัปเดต</b> ข้อมูล (faculty, year, status)</p>
+                            <ul className="space-y-0.5 text-gray-500">
+                                <li>• <b>status</b> ไม่จำเป็นต้องใส่ (ค่าเริ่มต้น: active)</li>
+                                <li>• ถ้ารหัสซ้ำ → <b>อัปเดต</b> faculty / year / status</li>
+                                <li>• สำหรับข้อมูลวันเกิด/เลขบัตร ใช้ script import แยก</li>
+                            </ul>
                         </div>
 
                         <div>
@@ -434,22 +444,27 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                                 accept=".csv,text/csv"
                                 onChange={handleImportFile}
                                 disabled={isImporting}
-                                className="block w-full text-sm text-gray-600 file:mr-3 file:py-1.5 file:px-3 file:rounded-lg file:border file:border-gray-200 file:text-xs file:font-medium file:text-gray-700 file:bg-gray-50 hover:file:bg-gray-100 cursor-pointer disabled:opacity-50"
+                                className="block w-full text-sm text-gray-600
+                                    file:mr-3 file:py-1.5 file:px-3 file:rounded-lg
+                                    file:border file:border-gray-200 file:text-xs file:font-medium
+                                    file:text-gray-700 file:bg-gray-50 hover:file:bg-gray-100
+                                    cursor-pointer disabled:opacity-50"
                             />
                         </div>
 
                         {isImporting && (
-                            <p className="text-sm text-gray-500 text-center">กำลังนำเข้า...</p>
+                            <p className="text-sm text-gray-500 text-center animate-pulse">กำลังนำเข้า...</p>
                         )}
 
                         {importResult && (
-                            <div className={`rounded-lg border px-4 py-3 space-y-1.5 ${importResult.errors.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
-                                <p className="text-sm font-medium text-gray-800">
-                                    เพิ่มใหม่ {importResult.inserted} รายการ &nbsp;|&nbsp; อัปเดต {importResult.updated} รายการ
-                                </p>
+                            <div className={`rounded-lg border px-4 py-3 space-y-2 ${importResult.errors.length > 0 ? 'bg-amber-50 border-amber-200' : 'bg-green-50 border-green-200'}`}>
+                                <div className="flex gap-4 text-sm font-medium text-gray-800">
+                                    <span>เพิ่มใหม่ <b className="text-green-700">{importResult.inserted}</b> รายการ</span>
+                                    <span>อัปเดต <b className="text-blue-700">{importResult.updated}</b> รายการ</span>
+                                </div>
                                 {importResult.errors.length > 0 && (
                                     <div>
-                                        <p className="text-xs font-medium text-amber-700 mb-1">ข้อผิดพลาด ({importResult.errors.length} แถว):</p>
+                                        <p className="text-xs font-semibold text-amber-700 mb-1">ข้อผิดพลาด {importResult.errors.length} แถว:</p>
                                         <ul className="space-y-0.5 max-h-36 overflow-y-auto">
                                             {importResult.errors.map((e, i) => (
                                                 <li key={i} className="text-xs text-amber-800">• {e}</li>
@@ -460,12 +475,7 @@ export default function StudentTable({ initialData, faculties: initialFaculties 
                             </div>
                         )}
 
-                        <button
-                            onClick={() => setShowImport(false)}
-                            className="btn-secondary w-full"
-                        >
-                            ปิด
-                        </button>
+                        <button onClick={() => setShowImport(false)} className="btn-secondary w-full">ปิด</button>
                     </div>
                 </div>
             )}

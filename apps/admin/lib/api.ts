@@ -202,6 +202,13 @@ export interface Student {
     year: number
     status: 'active' | 'inactive'
     created_at: string
+    updated_at: string
+    // Identity verification fields (stored as hashes — actual values not available)
+    verify_doc_type: 'national_id' | 'passport' | null
+    has_dob: boolean
+    has_id_card: boolean
+    has_passport: boolean
+    // LINE linking
     line_user_id: string | null
     linked_at: string | null
 }
