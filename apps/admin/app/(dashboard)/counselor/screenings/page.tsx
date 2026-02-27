@@ -31,11 +31,19 @@ export default async function ScreeningsPage({ searchParams }: { searchParams: S
     const { risk_level, page } = await searchParams
     const currentPage = Math.max(1, Number(page) || 1)
 
-    const result = await getScreeningsApi({
-        risk_level: RISK_LEVELS.includes(risk_level as any) ? risk_level : undefined,
-        page: currentPage,
-        limit: 30,
-    }).catch(() => ({ data: [] as Screening[], total: 0, page: 1, limit: 30 }))
+    let result: { data: Screening[]; total: number; page: number; limit: number }
+    let apiError: string | null = null
+
+    try {
+        result = await getScreeningsApi({
+            risk_level: RISK_LEVELS.includes(risk_level as any) ? risk_level : undefined,
+            page: currentPage,
+            limit: 30,
+        })
+    } catch (err) {
+        apiError = err instanceof Error ? err.message : 'เกิดข้อผิดพลาดที่ไม่ทราบสาเหตุ'
+        result = { data: [], total: 0, page: 1, limit: 30 }
+    }
 
     const totalPages = Math.ceil(result.total / result.limit)
 
@@ -80,8 +88,16 @@ export default async function ScreeningsPage({ searchParams }: { searchParams: S
                 <span className="ml-auto text-xs text-gray-400">{result.total} รายการ</span>
             </div>
 
+            {/* API error */}
+            {apiError && (
+                <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                    <p className="font-semibold mb-1">ไม่สามารถโหลดข้อมูลได้</p>
+                    <p className="font-mono text-xs">{apiError}</p>
+                </div>
+            )}
+
             {/* Table */}
-            {result.data.length === 0 ? (
+            {result.data.length === 0 && !apiError ? (
                 <div className="card py-16 text-center text-gray-400 text-sm">
                     ไม่มีข้อมูลการประเมิน
                 </div>
