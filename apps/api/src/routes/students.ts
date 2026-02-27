@@ -34,7 +34,6 @@ function checkRateLimit(key: string): boolean {
 /**
  * POST /students/link-line
  * LIFF Verify → Link student_code to LINE userId
- * Dual-document verification: National ID/Pink Card OR Passport
  */
 router.post('/link-line', async (req: Request, res: Response) => {
     const parsed = schemas.LinkLineRequest.safeParse(req.body);
@@ -45,55 +44,65 @@ router.post('/link-line', async (req: Request, res: Response) => {
 
     const { student_code, verify_doc_type, verify_token, verify_doc_number, line_user_id } = parsed.data;
 
-    // Rate limit per line_user_id
     if (!checkRateLimit(line_user_id)) {
         res.status(429).json({ error: 'กรุณารอสักครู่แล้วลองใหม่อีกครั้ง' });
         return;
     }
 
-    // Check if already linked
-    const existingLink = await db('public.line_links')
-        .where({ line_user_id })
-        .first();
-
+    const existingLink = await db('public.line_links').where({ line_user_id }).first();
     if (existingLink) {
         res.status(409).json({ error: 'LINE account นี้เชื่อมต่อแล้ว' });
         return;
     }
 
-    // Find student
-    const student = await db('public.students')
-        .where({ student_code, status: 'active' })
-        .first();
-
+    const student = await db('public.students').where({ student_code, status: 'active' }).first();
     if (!student) {
-        // Generic error to prevent enumeration
         logger.warn({ student_code, line_user_id }, 'Link attempt: student not found');
         res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' });
         return;
     }
 
-    // Verify DOB (verify_token = YYYY-MM-DD)
+    // Verify DOB — try hash first, then compare plain text dob if hash not set
     const dobHash = hashSensitiveData(verify_token);
-    if (student.dob_hash && student.dob_hash !== dobHash) {
-        logger.warn({ student_code, line_user_id }, 'Link attempt: DOB mismatch');
-        await logAudit(line_user_id, 'link_line_failed', 'student', student.id);
-        res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' });
-        return;
+    if (student.dob_hash) {
+        if (student.dob_hash !== dobHash) {
+            logger.warn({ student_code, line_user_id }, 'Link attempt: DOB mismatch');
+            await logAudit(line_user_id, 'link_line_failed', 'student', student.id);
+            res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' });
+            return;
+        }
+    } else if (student.dob) {
+        // Compare plain text dob (stored as date, verify_token is YYYY-MM-DD string)
+        const storedDob = new Date(student.dob).toISOString().split('T')[0];
+        if (storedDob !== verify_token) {
+            logger.warn({ student_code, line_user_id }, 'Link attempt: DOB mismatch (plain)');
+            await logAudit(line_user_id, 'link_line_failed', 'student', student.id);
+            res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' });
+            return;
+        }
     }
 
-    // Verify document number
+    // Verify document number — try hash first, then compare plain text
     const docHash = hashSensitiveData(verify_doc_number);
-    const docField = verify_doc_type === 'national_id' ? 'id_card_hash' : 'passport_hash';
+    const docHashField = verify_doc_type === 'national_id' ? 'id_card_hash' : 'passport_hash';
+    const docPlainField = verify_doc_type === 'national_id' ? 'id_card' : 'passport_no';
 
-    if (student[docField] && student[docField] !== docHash) {
-        logger.warn({ student_code, line_user_id, verify_doc_type }, 'Link attempt: doc mismatch');
-        await logAudit(line_user_id, 'link_line_failed', 'student', student.id);
-        res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' });
-        return;
+    if (student[docHashField]) {
+        if (student[docHashField] !== docHash) {
+            logger.warn({ student_code, line_user_id, verify_doc_type }, 'Link attempt: doc mismatch');
+            await logAudit(line_user_id, 'link_line_failed', 'student', student.id);
+            res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' });
+            return;
+        }
+    } else if (student[docPlainField]) {
+        if (student[docPlainField] !== verify_doc_number.trim()) {
+            logger.warn({ student_code, line_user_id, verify_doc_type }, 'Link attempt: doc mismatch (plain)');
+            await logAudit(line_user_id, 'link_line_failed', 'student', student.id);
+            res.status(400).json({ error: 'ข้อมูลไม่ถูกต้อง กรุณาตรวจสอบอีกครั้ง' });
+            return;
+        }
     }
 
-    // Create link
     await db('public.line_links').insert({
         student_id: student.id,
         line_user_id,
@@ -101,35 +110,25 @@ router.post('/link-line', async (req: Request, res: Response) => {
         consented_at: new Date(),
     });
 
-    // Update student verify_doc_type if not set
     if (!student.verify_doc_type) {
-        await db('public.students')
-            .where({ id: student.id })
-            .update({ verify_doc_type });
+        await db('public.students').where({ id: student.id }).update({ verify_doc_type });
     }
 
-    // Switch Rich Menu to Verified
     try {
         await assignVerifiedMenu(line_user_id);
     } catch (err) {
         logger.error({ err, line_user_id }, 'Failed to assign verified menu (non-blocking)');
     }
 
-    // Audit log
     await logAudit(line_user_id, 'link_line_success', 'student', student.id);
-
     logger.info({ student_code, line_user_id }, 'Student linked successfully');
 
-    res.json({
-        linked: true,
-        student_id: student.id,
-    });
+    res.json({ linked: true, student_id: student.id });
 });
 
 /**
  * GET /students
  * รายชื่อนักศึกษาทั้งหมด — admin only
- * ไม่แสดง hash fields
  */
 router.get('/',
     authenticate,
@@ -156,11 +155,14 @@ router.get('/',
                     's.id', 's.student_code', 's.faculty', 's.year', 's.status',
                     's.created_at', 's.updated_at',
                     's.verify_doc_type',
+                    's.dob',
+                    's.id_card',
+                    's.passport_no',
                     db.raw('l.line_user_id'),
                     db.raw('l.linked_at'),
-                    db.raw('(s.dob_hash IS NOT NULL) as has_dob'),
-                    db.raw('(s.id_card_hash IS NOT NULL) as has_id_card'),
-                    db.raw('(s.passport_hash IS NOT NULL) as has_passport'),
+                    db.raw('(s.dob_hash IS NOT NULL OR s.dob IS NOT NULL) as has_dob'),
+                    db.raw('(s.id_card_hash IS NOT NULL OR s.id_card IS NOT NULL) as has_id_card'),
+                    db.raw('(s.passport_hash IS NOT NULL OR s.passport_no IS NOT NULL) as has_passport'),
                 )
         ).orderBy('s.student_code').limit(limitNum).offset(offset);
 
@@ -189,9 +191,7 @@ router.get('/faculties',
     authenticate,
     authorize('admin'),
     async (_req: Request, res: Response) => {
-        const rows = await db('public.students')
-            .distinct('faculty')
-            .orderBy('faculty');
+        const rows = await db('public.students').distinct('faculty').orderBy('faculty');
         res.json(rows.map((r: { faculty: string }) => r.faculty));
     }
 );
@@ -199,8 +199,7 @@ router.get('/faculties',
 /**
  * POST /students/import
  * นำเข้านักศึกษาจาก CSV (admin only)
- * Body: { csv: string }
- * CSV columns: student_code, faculty, year[, status]
+ * CSV columns: student_code, faculty, year[, status[, dob[, id_card[, passport_no]]]]
  */
 router.post('/import',
     authenticate,
@@ -214,11 +213,7 @@ router.post('/import',
 
         let records: Record<string, string>[];
         try {
-            records = parse(csv, {
-                columns: true,
-                skip_empty_lines: true,
-                trim: true,
-            });
+            records = parse(csv, { columns: true, skip_empty_lines: true, trim: true });
         } catch (e: unknown) {
             const msg = e instanceof Error ? e.message : String(e);
             res.status(400).json({ error: `CSV parse error: ${msg}` });
@@ -231,7 +226,10 @@ router.post('/import',
 
         for (const [i, row] of records.entries()) {
             const rowNum = i + 2;
-            const { student_code, faculty, year, status = 'active' } = row;
+            const { student_code, faculty, year } = row;
+
+            // status: ถ้าว่างหรือไม่มีคอลัมน์ → ใช้ 'active' เป็นค่าเริ่มต้น
+            const status = (row.status && row.status.trim()) ? row.status.trim() : 'active';
 
             if (!student_code || !faculty || !year) {
                 errors.push(`แถว ${rowNum}: ขาด student_code, faculty หรือ year`);
@@ -249,15 +247,38 @@ router.post('/import',
                 continue;
             }
 
+            // Optional plain text identity fields
+            const dob = (row.dob && row.dob.trim()) ? row.dob.trim() : undefined;
+            const id_card = (row.id_card && row.id_card.trim()) ? row.id_card.trim() : undefined;
+            const passport_no = (row.passport_no && row.passport_no.trim()) ? row.passport_no.trim() : undefined;
+
+            // Build update payload (include hash fields so link-line verification works)
+            const payload: Record<string, unknown> = {
+                faculty, year: yearNum, status,
+                updated_at: new Date(),
+            };
+            if (dob !== undefined) {
+                payload.dob = dob;
+                payload.dob_hash = hashSensitiveData(dob);
+            }
+            if (id_card !== undefined) {
+                payload.id_card = id_card;
+                payload.id_card_hash = hashSensitiveData(id_card);
+                payload.verify_doc_type = 'national_id';
+            }
+            if (passport_no !== undefined) {
+                payload.passport_no = passport_no;
+                payload.passport_hash = hashSensitiveData(passport_no);
+                if (!id_card) payload.verify_doc_type = 'passport';
+            }
+
             try {
                 const existing = await db('public.students').where({ student_code }).first();
                 if (existing) {
-                    await db('public.students')
-                        .where({ student_code })
-                        .update({ faculty, year: yearNum, status, updated_at: new Date() });
+                    await db('public.students').where({ student_code }).update(payload);
                     updated++;
                 } else {
-                    await db('public.students').insert({ student_code, faculty, year: yearNum, status });
+                    await db('public.students').insert({ student_code, ...payload });
                     inserted++;
                 }
             } catch (e: unknown) {
@@ -273,12 +294,13 @@ router.post('/import',
 /**
  * PATCH /students/:id
  * แก้ไขข้อมูลนักศึกษา — admin only
+ * Supports: faculty, year, status, dob, id_card, passport_no
  */
 router.patch('/:id',
     authenticate,
     authorize('admin'),
     async (req: Request, res: Response) => {
-        const { faculty, year, status } = req.body;
+        const { faculty, year, status, dob, id_card, passport_no } = req.body;
         const updates: Record<string, unknown> = { updated_at: new Date() };
 
         if (faculty !== undefined) updates.faculty = String(faculty).trim();
@@ -300,10 +322,40 @@ router.patch('/:id',
             updates.status = status;
         }
 
+        // Plain text + recompute hash so link-line still works
+        if (dob !== undefined) {
+            const d = String(dob).trim();
+            updates.dob = d || null;
+            updates.dob_hash = d ? hashSensitiveData(d) : null;
+        }
+
+        if (id_card !== undefined) {
+            const v = String(id_card).trim();
+            updates.id_card = v || null;
+            updates.id_card_hash = v ? hashSensitiveData(v) : null;
+            if (v) updates.verify_doc_type = 'national_id';
+        }
+
+        if (passport_no !== undefined) {
+            const v = String(passport_no).trim();
+            updates.passport_no = v || null;
+            updates.passport_hash = v ? hashSensitiveData(v) : null;
+            // Only set passport verify_doc_type if no id_card exists after update
+            if (v && updates.id_card === undefined) {
+                // Check existing id_card
+                const existing = await db('public.students').where({ id: req.params.id }).first();
+                if (!existing?.id_card) updates.verify_doc_type = 'passport';
+            }
+        }
+
         const [updated] = await db('public.students')
             .where({ id: req.params.id })
             .update(updates)
-            .returning(['id', 'student_code', 'faculty', 'year', 'status', 'created_at', 'updated_at']);
+            .returning([
+                'id', 'student_code', 'faculty', 'year', 'status',
+                'created_at', 'updated_at', 'verify_doc_type',
+                'dob', 'id_card', 'passport_no',
+            ]);
 
         if (!updated) {
             res.status(404).json({ error: 'ไม่พบนักศึกษา' });
@@ -316,7 +368,7 @@ router.patch('/:id',
 
 /**
  * DELETE /students/:id
- * ลบนักศึกษา — admin only (ลบ line_links ก่อน)
+ * ลบนักศึกษา — admin only
  */
 router.delete('/:id',
     authenticate,
