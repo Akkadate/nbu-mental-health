@@ -64,13 +64,14 @@ export function getMeApi() {
 
 export interface Appointment {
     id: string
-    studentCode: string
-    studentName: string
-    advisorId: string
-    scheduledAt: string
+    student_code: string
+    faculty: string | null
+    advisor_id?: string
+    counselor_id?: string
+    scheduled_at: string
     mode: 'online' | 'onsite'
     status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
-    createdAt: string
+    created_at: string
 }
 
 export interface Slot {
@@ -115,14 +116,15 @@ export function deleteAdvisorySlotApi(id: string) {
 
 export interface Case {
     id: string
-    studentCode: string
+    student_code: string
+    faculty: string | null
     priority: 'high' | 'crisis'
     status: 'open' | 'acked' | 'contacted' | 'follow_up' | 'closed'
-    assignedCounselorId: string | null
-    latestScreeningId: string | null
-    ackedAt: string | null
-    closedAt: string | null
-    createdAt: string
+    assigned_counselor_id: string | null
+    latest_screening_id: string | null
+    acked_at: string | null
+    closed_at: string | null
+    created_at: string
 }
 
 export function getCasesApi(status?: string) {
@@ -148,8 +150,7 @@ export interface CaseNote {
 }
 
 export interface CaseDetail extends Case {
-    faculty: string
-    year: number
+    year: number | null
     screening: CaseScreening | null
     notes: CaseNote[]
 }

@@ -38,7 +38,7 @@ export default function CaseQueue({ cases: initialCases }: CaseQueueProps) {
             })
             if (res.ok) {
                 setCases((prev) =>
-                    prev.map((c) => (c.id === id ? { ...c, status: 'acked' as const, ackedAt: new Date().toISOString() } : c)),
+                    prev.map((c) => (c.id === id ? { ...c, status: 'acked' as const, acked_at: new Date().toISOString() } : c)),
                 )
             }
         })
@@ -81,9 +81,9 @@ export default function CaseQueue({ cases: initialCases }: CaseQueueProps) {
                                         {statusLabel[c.status] ?? c.status}
                                     </span>
                                 </div>
-                                <p className="text-sm font-medium text-gray-900">รหัส: {c.studentCode}</p>
+                                <p className="text-sm font-medium text-gray-900">รหัส: {c.student_code}</p>
                                 <p className="text-xs text-gray-400">
-                                    {new Date(c.createdAt).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
+                                    {new Date(c.created_at).toLocaleString('th-TH', { dateStyle: 'short', timeStyle: 'short' })}
                                 </p>
                             </div>
 

@@ -71,11 +71,11 @@ export default function AppointmentTable({ appointments }: AppointmentTableProps
                             {filtered.map((appt) => (
                                 <tr key={appt.id} className="hover:bg-gray-50/50 transition-colors">
                                     <td className="px-4 py-3">
-                                        <p className="font-medium text-gray-900">{appt.studentName ?? '—'}</p>
-                                        <p className="text-xs text-gray-400">{appt.studentCode}</p>
+                                        <p className="font-medium text-gray-900">{appt.student_code}</p>
+                                        <p className="text-xs text-gray-400">{appt.faculty ?? '—'}</p>
                                     </td>
                                     <td className="px-4 py-3 text-gray-600">
-                                        {new Date(appt.scheduledAt).toLocaleString('th-TH', {
+                                        {new Date(appt.scheduled_at).toLocaleString('th-TH', {
                                             dateStyle: 'short',
                                             timeStyle: 'short',
                                         })}

@@ -187,7 +187,7 @@ async function handleAggregateRollup(payload: any): Promise<void> {
 
     if (existing) {
         await db('analytics.daily_metrics')
-            .where({ id: existing.id })
+            .where({ metric_date: date, faculty })
             .increment(field, 1);
     } else {
         await db('analytics.daily_metrics').insert({

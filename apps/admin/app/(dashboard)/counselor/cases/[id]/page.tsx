@@ -45,7 +45,7 @@ export default async function CaseDetailPage({ params }: Props) {
                     <div>
                         <p className="text-xs text-gray-400 mb-1">เคส #{c.id.slice(0, 8)}</p>
                         <h1 className="text-lg font-bold text-gray-900">
-                            รหัสนักศึกษา: {(c as any).student_code ?? c.studentCode}
+                            รหัสนักศึกษา: {c.student_code}
                         </h1>
                     </div>
                     <span className={`text-xs px-2.5 py-1 rounded-full font-semibold border ${priorityColor}`}>
@@ -60,7 +60,7 @@ export default async function CaseDetailPage({ params }: Props) {
                     <div>
                         <p className="text-xs text-gray-400">สร้างเมื่อ</p>
                         <p className="font-medium text-gray-800">
-                            {new Date((c as any).created_at ?? c.createdAt).toLocaleDateString('th-TH', { dateStyle: 'short' })}
+                            {new Date(c.created_at).toLocaleDateString('th-TH', { dateStyle: 'short' })}
                         </p>
                     </div>
                 </div>
