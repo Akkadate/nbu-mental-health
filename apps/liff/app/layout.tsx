@@ -1,4 +1,4 @@
-import type { Metadata } from 'next'
+import type { Metadata, Viewport } from 'next'
 import { Noto_Sans_Thai, Inter } from 'next/font/google'
 import './globals.css'
 
@@ -18,7 +18,13 @@ const inter = Inter({
 export const metadata: Metadata = {
     title: 'NBU Mental Health',
     description: 'แบบประเมินความเครียดและระบบดูแลสุขภาพจิต — มหาวิทยาลัยนอร์ทกรุงเทพ',
-    viewport: 'width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no',
+}
+
+export const viewport: Viewport = {
+    width: 'device-width',
+    initialScale: 1,
+    maximumScale: 1,
+    userScalable: false,
     themeColor: '#06C755',
 }
 
