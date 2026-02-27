@@ -82,3 +82,21 @@ export async function createNotifyStaffJob(
         });
     }
 }
+
+/**
+ * Create job to push screening result Flex Message to student via LINE.
+ */
+export async function createScreeningResultJob(
+    studentLineUserId: string,
+    riskLevel: string,
+    routingSuggestion: string,
+): Promise<void> {
+    const showBookingCTA = riskLevel === 'moderate' || riskLevel === 'high';
+    await createJob('send_line_message', {
+        line_user_id: studentLineUserId,
+        message_type: 'screening_result',
+        risk_level: riskLevel,
+        routing_suggestion: routingSuggestion,
+        show_booking_cta: showBookingCTA,
+    });
+}

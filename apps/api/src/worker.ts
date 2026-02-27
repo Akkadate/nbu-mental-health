@@ -1,6 +1,6 @@
 import db from './db.js';
 import { logger } from './logger.js';
-import { pushMessage, buildStaffNotification } from './services/line-client.js';
+import { pushMessage, buildStaffNotification, buildScreeningResultMessage, buildSafetyPackMessage } from './services/line-client.js';
 
 const POLL_INTERVAL_MS = 5000;
 
@@ -81,6 +81,19 @@ async function handleSendLineMessage(payload: any): Promise<void> {
         await pushMessage(line_user_id, [
             buildStaffNotification(case_id, priority, dashboardUrl),
         ]);
+        return;
+    }
+
+    if (message_type === 'screening_result') {
+        const { risk_level, routing_suggestion, show_booking_cta } = payload;
+        const messages: any[] = [
+            buildScreeningResultMessage(risk_level, routing_suggestion, show_booking_cta),
+        ];
+        // For CRISIS, append safety pack as a second bubble
+        if (risk_level === 'crisis') {
+            messages.push(buildSafetyPackMessage());
+        }
+        await pushMessage(line_user_id, messages);
     }
 }
 

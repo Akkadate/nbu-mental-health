@@ -2,7 +2,7 @@ import { Router, Request, Response } from 'express';
 import { schemas, RiskLevel } from '@nbu/shared';
 import db from '../db.js';
 import { calculateRisk, getRoutingSuggestion } from '../services/risk-engine.js';
-import { createJob, createEscalationJob, createNotifyStaffJob } from '../services/jobs.js';
+import { createJob, createEscalationJob, createNotifyStaffJob, createScreeningResultJob } from '../services/jobs.js';
 import { logger } from '../logger.js';
 
 const router = Router();
@@ -88,6 +88,16 @@ router.post('/', async (req: Request, res: Response) => {
         risk_level: scores.risk_level,
         date: new Date().toISOString().split('T')[0],
     });
+
+    // Push screening result back to student via LINE
+    const lineLink = await db('public.line_links').where({ student_id }).first();
+    if (lineLink?.line_user_id) {
+        await createScreeningResultJob(
+            lineLink.line_user_id,
+            scores.risk_level,
+            suggestion,
+        );
+    }
 
     logger.info({
         screeningId: screening.id,
