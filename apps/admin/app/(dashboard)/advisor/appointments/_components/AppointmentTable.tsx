@@ -34,6 +34,8 @@ export default function AppointmentTable({ appointments: initial }: AppointmentT
     const filters = ['all', 'scheduled', 'completed', 'cancelled', 'no_show']
 
     const handleStatusChange = (id: string, newStatus: string) => {
+        const label = statusLabel[newStatus] ?? newStatus
+        if (!window.confirm(`เปลี่ยนสถานะเป็น "${label}" ใช่หรือไม่?`)) return
         setUpdateError(null)
         startTransition(async () => {
             const res = await fetch(`${API_BASE}/appointments/${id}`, {
