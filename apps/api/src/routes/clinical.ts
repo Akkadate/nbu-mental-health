@@ -7,6 +7,59 @@ import { encryptNote, decryptNote } from '../services/encryption.js';
 const router = Router();
 
 /**
+ * GET /clinical/screenings
+ * List all screenings — counselor/supervisor only
+ */
+router.get('/screenings',
+    authenticate,
+    authorize('counselor', 'supervisor'),
+    auditLog('view_screenings'),
+    async (req: Request, res: Response) => {
+        const { risk_level, from, to } = req.query;
+        const page = Math.max(1, Number(req.query.page) || 1);
+        const limit = Math.min(100, Number(req.query.limit) || 30);
+        const offset = (page - 1) * limit;
+
+        const applyFilters = (q: any) => {
+            if (risk_level) q = q.where('clinical.screenings.risk_level', risk_level as string);
+            if (from) q = q.where('clinical.screenings.created_at', '>=', from as string);
+            if (to) q = q.where('clinical.screenings.created_at', '<=', to as string);
+            return q;
+        };
+
+        const listQuery = applyFilters(
+            db('clinical.screenings')
+                .join('public.students', 'clinical.screenings.student_id', 'public.students.id')
+                .select(
+                    'clinical.screenings.id',
+                    'clinical.screenings.type',
+                    'clinical.screenings.phq9_score',
+                    'clinical.screenings.gad7_score',
+                    'clinical.screenings.stress_score',
+                    'clinical.screenings.risk_level',
+                    'clinical.screenings.created_at',
+                    'public.students.student_code',
+                    'public.students.faculty',
+                )
+        );
+
+        const countQuery = applyFilters(
+            db('clinical.screenings')
+                .join('public.students', 'clinical.screenings.student_id', 'public.students.id')
+                .count('clinical.screenings.id as count')
+        );
+
+        const [{ count }] = await countQuery;
+        const screenings = await listQuery
+            .orderBy('clinical.screenings.created_at', 'desc')
+            .limit(limit)
+            .offset(offset);
+
+        res.json({ data: screenings, total: Number(count), page, limit });
+    }
+);
+
+/**
  * GET /clinical/cases
  * List clinical cases — counselor/supervisor only
  */

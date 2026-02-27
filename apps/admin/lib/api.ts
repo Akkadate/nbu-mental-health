@@ -130,8 +130,67 @@ export function getCasesApi(status?: string) {
     return apiFetch<Case[]>(`/clinical/cases${params}`)
 }
 
+export interface CaseScreening {
+    id: string
+    type: string
+    phq9_score: number | null
+    gad7_score: number | null
+    stress_score: number | null
+    risk_level: string
+    created_at: string
+}
+
+export interface CaseNote {
+    id: string
+    counselor_id: string
+    note: string
+    created_at: string
+}
+
+export interface CaseDetail extends Case {
+    faculty: string
+    year: number
+    screening: CaseScreening | null
+    notes: CaseNote[]
+}
+
 export function getCaseByIdApi(id: string) {
-    return apiFetch<Case>(`/clinical/cases/${id}`)
+    return apiFetch<CaseDetail>(`/clinical/cases/${id}`)
+}
+
+export interface Screening {
+    id: string
+    student_code: string
+    faculty: string
+    type: 'stress_mini' | 'phq9_gad7'
+    phq9_score: number | null
+    gad7_score: number | null
+    stress_score: number | null
+    risk_level: 'low' | 'moderate' | 'high' | 'crisis'
+    created_at: string
+}
+
+export interface ScreeningsResponse {
+    data: Screening[]
+    total: number
+    page: number
+    limit: number
+}
+
+export function getScreeningsApi(params?: {
+    risk_level?: string
+    from?: string
+    to?: string
+    page?: number
+    limit?: number
+}) {
+    const q = new URLSearchParams()
+    if (params?.risk_level) q.set('risk_level', params.risk_level)
+    if (params?.from) q.set('from', params.from)
+    if (params?.to) q.set('to', params.to)
+    if (params?.page) q.set('page', String(params.page))
+    if (params?.limit) q.set('limit', String(params.limit))
+    return apiFetch<ScreeningsResponse>(`/clinical/screenings?${q.toString()}`)
 }
 
 export function ackCaseApi(id: string) {
