@@ -106,7 +106,20 @@ router.get('/slots', async (req: Request, res: Response) => {
         .orderBy('start_at', 'asc')
         .limit(rowLimit);
 
-    res.json({ data: slots, count: slots.length });
+    // Transform to LIFF-expected format (date + start_time + end_time strings in Bangkok timezone)
+    const data = slots.map((s: any) => {
+        const start = new Date(s.start_at);
+        const end = new Date(s.end_at);
+        return {
+            id: s.id,
+            date: start.toLocaleDateString('en-CA', { timeZone: 'Asia/Bangkok' }), // "YYYY-MM-DD"
+            start_time: start.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' }), // "HH:MM"
+            end_time: end.toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', hour12: false, timeZone: 'Asia/Bangkok' }),
+            available: s.is_available,
+        };
+    });
+
+    res.json({ data, count: data.length });
 });
 
 /**
