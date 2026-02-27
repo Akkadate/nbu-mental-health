@@ -82,25 +82,31 @@ router.post('/', async (req: Request, res: Response) => {
 
 /**
  * GET /appointments/slots
- * Get available slots — query: type=advisor|counselor, from, to
+ * Get available slots — called from LIFF
+ * Query: type=advisor|counselor (required), from? (default: now), to? (default: +30d), limit? (default: 30)
  */
 router.get('/slots', async (req: Request, res: Response) => {
-    const { type, from, to } = req.query;
+    const { type, from, to, limit } = req.query;
 
-    if (!type || !from || !to) {
-        res.status(400).json({ error: 'Missing required query params: type, from, to' });
+    if (!type || (type !== 'advisor' && type !== 'counselor')) {
+        res.status(400).json({ error: 'Missing or invalid query param: type (advisor|counselor)' });
         return;
     }
+
+    const fromDate = (from as string) || new Date().toISOString();
+    const toDate = (to as string) || new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString();
+    const rowLimit = Math.min(Number(limit) || 30, 100);
 
     const table = type === 'advisor' ? 'advisory.slots' : 'clinical.slots';
 
     const slots = await db(table)
         .where('is_available', true)
-        .where('start_at', '>=', from as string)
-        .where('end_at', '<=', to as string)
-        .orderBy('start_at', 'asc');
+        .where('start_at', '>=', fromDate)
+        .where('start_at', '<', toDate)
+        .orderBy('start_at', 'asc')
+        .limit(rowLimit);
 
-    res.json(slots);
+    res.json({ data: slots, count: slots.length });
 });
 
 /**
