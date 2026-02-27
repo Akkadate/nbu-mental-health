@@ -10,15 +10,24 @@ const router = Router();
 /**
  * POST /screenings
  * Submit screening answers → calculate risk → create case if HIGH/CRISIS
+ * Called from LIFF app: auth via line_user_id (resolved to student_id server-side)
  */
 router.post('/', async (req: Request, res: Response) => {
-    const parsed = schemas.ScreeningRequest.safeParse(req.body);
+    const parsed = schemas.LiffScreeningRequest.safeParse(req.body);
     if (!parsed.success) {
         res.status(400).json({ error: 'Invalid request', details: parsed.error.errors });
         return;
     }
 
-    const { student_id, type, intent, answers } = parsed.data;
+    const { line_user_id, type, intent, answers } = parsed.data;
+
+    // Resolve line_user_id → student_id
+    const lineLink = await db('public.line_links').where({ line_user_id }).first();
+    if (!lineLink) {
+        res.status(403).json({ error: 'LINE account not linked. Please verify your student ID first.' });
+        return;
+    }
+    const student_id = lineLink.student_id;
 
     // Verify student exists
     const student = await db('public.students').where({ id: student_id }).first();
@@ -27,8 +36,19 @@ router.post('/', async (req: Request, res: Response) => {
         return;
     }
 
+    // Convert LIFF answers array → Record<string, number[]> for risk engine
+    // PHQ-9 question IDs 1–9, GAD-7 question IDs 10–16 (if present)
+    const sortedAnswers = [...answers].sort((a, b) => a.question_id - b.question_id);
+    const normalizedAnswers: Record<string, number[]> =
+        type === 'phq9_gad7'
+            ? {
+                  phq9: sortedAnswers.filter((a) => a.question_id <= 9).map((a) => a.score),
+                  gad7: sortedAnswers.filter((a) => a.question_id >= 10 && a.question_id <= 16).map((a) => a.score),
+              }
+            : { stress: sortedAnswers.map((a) => a.score) };
+
     // Calculate risk
-    const scores = calculateRisk(type, answers);
+    const scores = calculateRisk(type, normalizedAnswers);
     const suggestion = getRoutingSuggestion(scores.risk_level, intent);
 
     // Insert screening record
@@ -89,15 +109,12 @@ router.post('/', async (req: Request, res: Response) => {
         date: new Date().toISOString().split('T')[0],
     });
 
-    // Push screening result back to student via LINE
-    const lineLink = await db('public.line_links').where({ student_id }).first();
-    if (lineLink?.line_user_id) {
-        await createScreeningResultJob(
-            lineLink.line_user_id,
-            scores.risk_level,
-            suggestion,
-        );
-    }
+    // Push screening result back to student via LINE (lineLink already resolved above)
+    await createScreeningResultJob(
+        line_user_id,
+        scores.risk_level,
+        suggestion,
+    );
 
     logger.info({
         screeningId: screening.id,

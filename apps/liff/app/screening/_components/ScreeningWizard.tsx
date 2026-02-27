@@ -102,14 +102,6 @@ const QUESTIONS: Question[] = [
 
 type RiskLevel = 'low' | 'moderate' | 'high' | 'crisis'
 
-function getRiskLevel(total: number, hasCrisis: boolean): RiskLevel {
-    if (hasCrisis) return 'crisis'
-    if (total <= 4) return 'low'
-    if (total <= 9) return 'moderate'
-    if (total <= 14) return 'high'
-    return 'crisis'
-}
-
 const RISK_CONFIG: Record<RiskLevel, { label: string; emoji: string; message: string; className: string }> = {
     low: {
         label: 'ความเสี่ยงต่ำ',
@@ -137,11 +129,19 @@ const RISK_CONFIG: Record<RiskLevel, { label: string; emoji: string; message: st
     },
 }
 
+interface ScreeningResult {
+    risk_level: string
+    phq9_score: number | null
+    gad7_score: number | null
+    routing_suggestion: string
+}
+
 export default function ScreeningWizard() {
     const { profile, accessToken } = useLiff()
     const [answers, setAnswers] = useState<Record<number, number>>({})
     const [step, setStep] = useState(0) // 0 = intro
     const [submitted, setSubmitted] = useState(false)
+    const [result, setResult] = useState<ScreeningResult | null>(null)
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState('')
 
@@ -163,14 +163,10 @@ export default function ScreeningWizard() {
     }
 
     const handleSubmit = () => {
-        const scores = QUESTIONS.map((q) => answers[q.id] ?? 0)
-        const total = scores.reduce((a, b) => a + b, 0)
-        const hasCrisis = (answers[9] ?? 0) > 0
-        const riskLevel = getRiskLevel(total, hasCrisis)
-
+        setError('')
         startTransition(async () => {
             try {
-                await fetch(`${API_BASE}/screenings`, {
+                const resp = await fetch(`${API_BASE}/screenings`, {
                     method: 'POST',
                     headers: {
                         'Content-Type': 'application/json',
@@ -178,20 +174,24 @@ export default function ScreeningWizard() {
                     },
                     body: JSON.stringify({
                         line_user_id: profile?.userId,
-                        instrument: 'PHQ-9',
+                        type: 'phq9_gad7',
                         answers: QUESTIONS.map((q) => ({
                             question_id: q.id,
                             score: answers[q.id] ?? 0,
                         })),
-                        total_score: total,
-                        risk_level: riskLevel,
                     }),
                 })
-            } catch {
-                setError('ไม่สามารถบันทึกผลได้ แต่คุณสามารถดูผลการประเมินได้ด้านล่าง')
+                if (!resp.ok) {
+                    const err = await resp.json().catch(() => ({}))
+                    throw new Error(err.error ?? `HTTP ${resp.status}`)
+                }
+                const data: ScreeningResult = await resp.json()
+                setResult(data)
+                setSubmitted(true)
+                setStep(totalQ + 1)
+            } catch (err) {
+                setError(err instanceof Error ? err.message : 'ไม่สามารถบันทึกผลได้ กรุณาลองใหม่')
             }
-            setSubmitted(true)
-            setStep(totalQ + 1)
         })
     }
 
@@ -223,6 +223,11 @@ export default function ScreeningWizard() {
 
         return (
             <div className="space-y-4">
+                {error && isLast && (
+                    <div className="rounded-xl bg-red-50 border border-red-200 px-4 py-3 text-sm text-red-700">
+                        {error}
+                    </div>
+                )}
                 <QuestionCard
                     question={currentQuestion}
                     selectedValue={currentAnswer}
@@ -252,36 +257,27 @@ export default function ScreeningWizard() {
     }
 
     // ─── Result ──────────────────────────────────────────────────────────────
-    if (submitted || step > totalQ) {
-        const scores = QUESTIONS.map((q) => answers[q.id] ?? 0)
-        const total = scores.reduce((a, b) => a + b, 0)
-        const hasCrisis = (answers[9] ?? 0) > 0
-        const risk = getRiskLevel(total, hasCrisis)
+    if (submitted && result) {
+        const risk = (result.risk_level as RiskLevel) in RISK_CONFIG
+            ? (result.risk_level as RiskLevel)
+            : 'low'
         const config = RISK_CONFIG[risk]
 
         return (
-            <div className="space-y-4">
-                {error && (
-                    <div className="rounded-xl bg-amber-50 border border-amber-200 px-4 py-3 text-sm text-amber-700">
-                        {error}
-                    </div>
-                )}
-                <div className="card text-center space-y-4">
-                    <div className="text-5xl">{config.emoji}</div>
-                    <div>
-                        <p className="text-xs text-gray-400 mb-1">คะแนนรวม {total} / 27</p>
-                        <h2 className={`text-lg font-bold ${config.className}`}>{config.label}</h2>
-                    </div>
-                    <p className="text-sm text-gray-600">{config.message}</p>
-                    {risk !== 'low' && (
-                        <a
-                            href={`/booking?type=counselor`}
-                            className="btn-line"
-                        >
-                            📅 นัดพบนักจิตวิทยา
-                        </a>
-                    )}
+            <div className="card text-center space-y-4">
+                <div className="text-5xl">{config.emoji}</div>
+                <div>
+                    <p className="text-xs text-gray-400 mb-1">
+                        คะแนน PHQ-9: {result.phq9_score ?? 0} / 27
+                    </p>
+                    <h2 className={`text-lg font-bold ${config.className}`}>{config.label}</h2>
                 </div>
+                <p className="text-sm text-gray-600">{result.routing_suggestion || config.message}</p>
+                {risk !== 'low' && (
+                    <a href="/booking?type=counselor" className="btn-line">
+                        📅 นัดพบนักจิตวิทยา
+                    </a>
+                )}
             </div>
         )
     }

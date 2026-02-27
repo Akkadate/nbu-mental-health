@@ -250,6 +250,7 @@ export default function BookingFlow({ initialType, initialMode }: BookingFlowPro
                         body: JSON.stringify({
                             slot_id: selectedSlotId,
                             line_user_id: profile?.userId,
+                            type: staffType,
                             mode: meetingMode,
                             note: note.trim() || undefined,
                         }),

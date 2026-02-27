@@ -59,6 +59,18 @@ export const ScreeningResponse = z.object({
     case_id: z.string().uuid().nullable(),
 });
 
+// ─── LIFF Screening (line_user_id-based, called from LIFF app) ───
+
+export const LiffScreeningRequest = z.object({
+    line_user_id: z.string().min(1).max(64),
+    type: z.enum(['stress_mini', 'phq9_gad7']),
+    intent: z.enum(['academic', 'stress', 'relationship', 'sleep', 'other', 'unsure']).optional().default('unsure'),
+    answers: z.array(z.object({
+        question_id: z.number().int().min(1),
+        score: z.number().int().min(0).max(3),
+    })).min(1),
+});
+
 // ─── Appointment / Booking ───
 
 export const CreateAppointmentRequest = z.object({
@@ -66,6 +78,16 @@ export const CreateAppointmentRequest = z.object({
     type: z.enum(['advisor', 'counselor']),
     slot_id: z.string().uuid(),
     mode: z.enum(['online', 'onsite']),
+});
+
+// ─── LIFF Appointment (line_user_id-based, called from LIFF app) ───
+
+export const LiffAppointmentRequest = z.object({
+    line_user_id: z.string().min(1).max(64),
+    slot_id: z.string().uuid(),
+    type: z.enum(['advisor', 'counselor']),
+    mode: z.enum(['online', 'onsite']),
+    note: z.string().max(500).optional(),
 });
 
 export const AppointmentResponse = z.object({

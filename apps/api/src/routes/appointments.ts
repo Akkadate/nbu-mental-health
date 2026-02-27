@@ -10,15 +10,24 @@ const router = Router();
 /**
  * POST /appointments
  * Book an appointment (advisor or counselor) — called from LIFF
+ * Auth via line_user_id (resolved to student_id server-side)
  */
 router.post('/', async (req: Request, res: Response) => {
-    const parsed = schemas.CreateAppointmentRequest.safeParse(req.body);
+    const parsed = schemas.LiffAppointmentRequest.safeParse(req.body);
     if (!parsed.success) {
         res.status(400).json({ error: 'Invalid request', details: parsed.error.errors });
         return;
     }
 
-    const { student_id, type, slot_id, mode } = parsed.data;
+    const { line_user_id, type, slot_id, mode } = parsed.data;
+
+    // Resolve line_user_id → student_id
+    const lineLink = await db('public.line_links').where({ line_user_id }).first();
+    if (!lineLink) {
+        res.status(403).json({ error: 'LINE account not linked. Please verify your student ID first.' });
+        return;
+    }
+    const student_id = lineLink.student_id;
 
     // Determine schema (advisory or clinical)
     const slotTable = type === 'advisor' ? 'advisory.slots' : 'clinical.slots';
@@ -51,18 +60,12 @@ router.post('/', async (req: Request, res: Response) => {
         })
         .returning('*');
 
-    // Create reminder jobs
-    const lineLink = await db('public.line_links')
-        .where({ student_id })
-        .first();
-
-    if (lineLink) {
-        await createReminderJobs(
-            appointment.id,
-            lineLink.line_user_id,
-            new Date(slot.start_at)
-        );
-    }
+    // Create reminder jobs (lineLink already resolved above)
+    await createReminderJobs(
+        appointment.id,
+        line_user_id,
+        new Date(slot.start_at)
+    );
 
     logger.info({
         appointmentId: appointment.id,
