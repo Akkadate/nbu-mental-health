@@ -11,7 +11,9 @@ const envCandidates = [
     path.resolve(__dirname, '../../.env'),
 ];
 const envPath = envCandidates.find(p => existsSync(p));
-dotenv.config({ path: envPath });
+// override: true forces dotenv to overwrite values already in process.env
+// (pm2 may inject stale env vars from its saved configuration)
+dotenv.config({ path: envPath, override: true });
 console.log(`[config] Loading .env from: ${envPath ?? '(not found — using process.env)'} | cwd=${process.cwd()}`);
 
 const envSchema = z.object({
