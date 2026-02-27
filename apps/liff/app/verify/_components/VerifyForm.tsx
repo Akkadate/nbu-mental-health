@@ -30,8 +30,12 @@ const i18n = {
         successTitle: 'ยืนยันตัวตนสำเร็จ',
         successMsg: 'บัญชี LINE ของคุณถูกเชื่อมต่อกับระบบ NBU แล้ว',
         successClose: 'ปิดหน้าต่างนี้เพื่อกลับไปยัง LINE ได้เลย',
+        alreadyLinkedTitle: 'เชื่อมต่อแล้ว',
+        alreadyLinkedMsg: 'บัญชี LINE นี้เชื่อมต่อกับระบบ NBU แล้ว',
+        alreadyLinkedClose: 'ปิดหน้าต่างนี้เพื่อกลับไปยัง LINE',
         errorConsent: 'กรุณายอมรับเงื่อนไขการใช้งาน',
         errorData: 'ข้อมูลไม่ถูกต้องหรือไม่พบในระบบ กรุณาตรวจสอบและลองใหม่',
+        errorStudentTaken: 'รหัสนักศึกษานี้เชื่อมต่อกับ LINE อื่นแล้ว กรุณาติดต่อเจ้าหน้าที่',
         errorGeneric: 'เกิดข้อผิดพลาด กรุณาลองใหม่อีกครั้ง',
     },
     en: {
@@ -54,8 +58,12 @@ const i18n = {
         successTitle: 'Verification Successful',
         successMsg: 'Your LINE account has been linked to the NBU system.',
         successClose: 'You may close this window to return to LINE.',
+        alreadyLinkedTitle: 'Already Linked',
+        alreadyLinkedMsg: 'This LINE account is already linked to the NBU system.',
+        alreadyLinkedClose: 'Close this window to return to LINE.',
         errorConsent: 'Please accept the terms of use.',
         errorData: 'Invalid information or student not found. Please check and try again.',
+        errorStudentTaken: 'This Student ID is already linked to another LINE account. Please contact staff.',
         errorGeneric: 'An error occurred. Please try again.',
     },
 } as const
@@ -81,7 +89,7 @@ export default function VerifyForm() {
         docNumber: '',
         consent: false,
     })
-    const [status, setStatus] = useState<'idle' | 'success' | 'error'>('idle')
+    const [status, setStatus] = useState<'idle' | 'success' | 'already_linked' | 'error'>('idle')
     const [errorMsg, setErrorMsg] = useState('')
     const [isPending, startTransition] = useTransition()
 
@@ -110,8 +118,21 @@ export default function VerifyForm() {
                     }),
                 })
                 if (!res.ok) {
-                    setErrorMsg(t.errorData)
-                    setStatus('error')
+                    if (res.status === 409) {
+                        // Distinguish: LINE already linked vs student taken by another LINE
+                        const body = await res.json().catch(() => ({}))
+                        const msg: string = body?.error ?? ''
+                        if (msg.includes('รหัสนักศึกษา') || msg.includes('Student ID')) {
+                            setErrorMsg(t.errorStudentTaken)
+                            setStatus('error')
+                        } else {
+                            // LINE account itself is already linked → show info screen
+                            setStatus('already_linked')
+                        }
+                    } else {
+                        setErrorMsg(t.errorData)
+                        setStatus('error')
+                    }
                     return
                 }
                 setStatus('success')
@@ -130,6 +151,18 @@ export default function VerifyForm() {
                 <h2 className="text-lg font-bold text-gray-900 mb-2">{t.successTitle}</h2>
                 <p className="text-sm text-gray-500">{t.successMsg}</p>
                 <p className="text-sm text-gray-400 mt-2">{t.successClose}</p>
+            </div>
+        )
+    }
+
+    // ── Already linked screen ─────────────────────────────────────────────────
+    if (status === 'already_linked') {
+        return (
+            <div className="max-w-sm mx-auto px-4 py-8 text-center">
+                <div className="text-5xl mb-4">🔗</div>
+                <h2 className="text-lg font-bold text-gray-900 mb-2">{t.alreadyLinkedTitle}</h2>
+                <p className="text-sm text-gray-500">{t.alreadyLinkedMsg}</p>
+                <p className="text-sm text-gray-400 mt-2">{t.alreadyLinkedClose}</p>
             </div>
         )
     }

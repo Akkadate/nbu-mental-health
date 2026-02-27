@@ -103,6 +103,15 @@ router.post('/link-line', async (req: Request, res: Response) => {
         return;
     }
 
+    // Check if this student_id is already linked to a different LINE account
+    const studentAlreadyLinked = await db('public.line_links').where({ student_id: student.id }).first();
+    if (studentAlreadyLinked) {
+        logger.warn({ student_code, line_user_id }, 'Link attempt: student already linked to another LINE account');
+        await logAudit(line_user_id, 'link_line_failed_student_taken', 'student', student.id);
+        res.status(409).json({ error: 'รหัสนักศึกษานี้เชื่อมต่อกับบัญชี LINE อื่นแล้ว กรุณาติดต่อเจ้าหน้าที่' });
+        return;
+    }
+
     // ── Verify DOB ─────────────────────────────────────────────────────────
     const inputDob = verify_token.trim();
     const inputDobHash = hashDob(inputDob);
