@@ -3,6 +3,8 @@
 import { useState, useTransition } from 'react'
 import type { Appointment } from '../../../../../lib/api'
 
+const API_BASE = process.env.NEXT_PUBLIC_API_URL ?? 'http://localhost:3000'
+
 const statusLabel: Record<string, string> = {
     scheduled: 'นัดหมาย',
     completed: 'เสร็จสิ้น',
@@ -21,13 +23,37 @@ interface AppointmentTableProps {
     appointments: Appointment[]
 }
 
-export default function AppointmentTable({ appointments }: AppointmentTableProps) {
+export default function AppointmentTable({ appointments: initial }: AppointmentTableProps) {
+    const [appointments, setAppointments] = useState<Appointment[]>(initial)
     const [filter, setFilter] = useState<string>('all')
-    const [_isPending, startTransition] = useTransition()
+    const [isPending, startTransition] = useTransition()
+    const [updateError, setUpdateError] = useState<string | null>(null)
 
     const filtered = filter === 'all' ? appointments : appointments.filter((a) => a.status === filter)
 
     const filters = ['all', 'scheduled', 'completed', 'cancelled', 'no_show']
+
+    const handleStatusChange = (id: string, newStatus: string) => {
+        setUpdateError(null)
+        startTransition(async () => {
+            const res = await fetch(`${API_BASE}/appointments/${id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ status: newStatus }),
+            })
+            if (res.ok) {
+                setAppointments((prev) =>
+                    prev.map((a) =>
+                        a.id === id ? { ...a, status: newStatus as Appointment['status'] } : a
+                    )
+                )
+            } else {
+                const body = await res.json().catch(() => ({}))
+                setUpdateError(body?.error ?? `HTTP ${res.status}`)
+            }
+        })
+    }
 
     return (
         <div className="card p-0 overflow-hidden">
@@ -36,17 +62,24 @@ export default function AppointmentTable({ appointments }: AppointmentTableProps
                 {filters.map((f) => (
                     <button
                         key={f}
-                        onClick={() => startTransition(() => setFilter(f))}
-                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${filter === f
+                        onClick={() => setFilter(f)}
+                        className={`px-3 py-1 rounded-full text-xs font-medium border transition-colors ${
+                            filter === f
                                 ? 'bg-brand-600 text-white border-brand-600'
                                 : 'bg-white text-gray-600 border-gray-200 hover:border-brand-300 hover:text-brand-600'
-                            }`}
+                        }`}
                     >
                         {f === 'all' ? 'ทั้งหมด' : statusLabel[f]}
                     </button>
                 ))}
                 <span className="ml-auto text-xs text-gray-400">{filtered.length} รายการ</span>
             </div>
+
+            {updateError && (
+                <div className="px-4 py-2 bg-red-50 border-b border-red-200 text-xs text-red-700">
+                    {updateError}
+                </div>
+            )}
 
             {/* Table */}
             {filtered.length === 0 ? (
@@ -86,9 +119,23 @@ export default function AppointmentTable({ appointments }: AppointmentTableProps
                                         </span>
                                     </td>
                                     <td className="px-4 py-3">
-                                        <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColor[appt.status] ?? ''}`}>
-                                            {statusLabel[appt.status] ?? appt.status}
-                                        </span>
+                                        {appt.status === 'scheduled' ? (
+                                            <select
+                                                value={appt.status}
+                                                disabled={isPending}
+                                                onChange={(e) => handleStatusChange(appt.id, e.target.value)}
+                                                className="text-xs border border-gray-200 rounded-lg px-2 py-1 bg-white text-gray-700 focus:ring-1 focus:ring-brand-300 focus:border-brand-300 disabled:opacity-50"
+                                            >
+                                                <option value="scheduled">นัดหมาย</option>
+                                                <option value="completed">เสร็จสิ้น</option>
+                                                <option value="cancelled">ยกเลิก</option>
+                                                <option value="no_show">ไม่มา</option>
+                                            </select>
+                                        ) : (
+                                            <span className={`text-xs px-2 py-0.5 rounded-full border font-medium ${statusColor[appt.status] ?? ''}`}>
+                                                {statusLabel[appt.status] ?? appt.status}
+                                            </span>
+                                        )}
                                     </td>
                                 </tr>
                             ))}
