@@ -83,26 +83,47 @@ const navItems: NavItem[] = [
 
 interface SidebarProps {
     role: Role
+    isOpen: boolean
+    onClose: () => void
 }
 
-export default function Sidebar({ role }: SidebarProps) {
+export default function Sidebar({ role, isOpen, onClose }: SidebarProps) {
     const pathname = usePathname()
 
     const filtered = navItems.filter((item) => item.roles.includes(role))
 
     return (
-        <aside className="hidden md:flex flex-col w-64 h-full bg-white border-r border-[--color-border] shrink-0">
+        <aside className={[
+            'fixed md:static inset-y-0 left-0 z-50 md:z-auto',
+            'flex flex-col w-72 md:w-64 h-full bg-white border-r border-[--color-border] shrink-0',
+            'transition-transform duration-300 ease-in-out',
+            isOpen ? 'translate-x-0' : '-translate-x-full',
+            'md:translate-x-0',
+        ].join(' ')}>
             {/* Brand */}
-            <div className="flex items-center gap-3 px-5 py-5 border-b border-[--color-border]">
-                <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shrink-0">
-                    <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+            <div className="flex items-center justify-between gap-3 px-5 py-5 border-b border-[--color-border]">
+                <div className="flex items-center gap-3">
+                    <div className="w-8 h-8 rounded-lg bg-gradient-to-br from-brand-500 to-brand-700 flex items-center justify-center shrink-0">
+                        <svg className="w-4 h-4 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" />
+                        </svg>
+                    </div>
+                    <div>
+                        <p className="text-sm font-bold text-brand-900 leading-tight">NBU Mental Health</p>
+                        <p className="text-xs text-brand-500 capitalize">{role}</p>
+                    </div>
+                </div>
+
+                {/* Close button — mobile only */}
+                <button
+                    onClick={onClose}
+                    className="md:hidden p-1.5 rounded-lg text-gray-400 hover:bg-gray-100 hover:text-gray-600 transition-colors"
+                    aria-label="ปิดเมนู"
+                >
+                    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={2}>
+                        <path strokeLinecap="round" strokeLinejoin="round" d="M6 18L18 6M6 6l12 12" />
                     </svg>
-                </div>
-                <div>
-                    <p className="text-sm font-bold text-brand-900 leading-tight">NBU Mental Health</p>
-                    <p className="text-xs text-brand-500 capitalize">{role}</p>
-                </div>
+                </button>
             </div>
 
             {/* Nav */}
@@ -113,7 +134,8 @@ export default function Sidebar({ role }: SidebarProps) {
                         <Link
                             key={item.href}
                             href={item.href}
-                            className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-sm font-medium transition-colors ${active
+                            onClick={onClose}
+                            className={`flex items-center gap-3 px-3 py-3 md:py-2.5 rounded-lg text-sm font-medium transition-colors ${active
                                     ? 'bg-brand-50 text-brand-700'
                                     : 'text-gray-600 hover:bg-gray-50 hover:text-gray-900'
                                 }`}
