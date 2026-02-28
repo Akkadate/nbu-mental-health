@@ -263,6 +263,81 @@ router.post('/link-line-staff', async (req: Request, res: Response) => {
 });
 
 /**
+ * POST /auth/change-password
+ * Change own password — any authenticated user
+ */
+router.post('/change-password',
+    authenticate,
+    async (req: Request, res: Response) => {
+        const { current_password, new_password } = req.body as {
+            current_password?: string;
+            new_password?: string;
+        };
+
+        if (!current_password || !new_password) {
+            res.status(400).json({ error: 'current_password and new_password are required' });
+            return;
+        }
+        if (new_password.length < 8) {
+            res.status(400).json({ error: 'รหัสผ่านใหม่ต้องมีอย่างน้อย 8 ตัวอักษร' });
+            return;
+        }
+
+        const user = await db('public.users').where({ id: req.user!.id }).first();
+        if (!user || !user.password_hash) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        const valid = await bcrypt.compare(current_password, user.password_hash);
+        if (!valid) {
+            res.status(401).json({ error: 'รหัสผ่านปัจจุบันไม่ถูกต้อง' });
+            return;
+        }
+
+        const password_hash = await bcrypt.hash(new_password, 12);
+        await db('public.users').where({ id: req.user!.id }).update({ password_hash });
+
+        logger.info({ userId: req.user!.id }, 'Password changed');
+        res.json({ ok: true });
+    }
+);
+
+/**
+ * POST /auth/users/:id/reset-password
+ * Reset any user's password — admin only (no current password required)
+ */
+router.post('/users/:id/reset-password',
+    authenticate,
+    async (req: Request, res: Response) => {
+        if (req.user!.role !== 'admin') {
+            res.status(403).json({ error: 'Admin only' });
+            return;
+        }
+
+        const { id } = req.params;
+        const { new_password } = req.body as { new_password?: string };
+
+        if (!new_password || new_password.length < 8) {
+            res.status(400).json({ error: 'new_password ต้องมีอย่างน้อย 8 ตัวอักษร' });
+            return;
+        }
+
+        const user = await db('public.users').where({ id }).first();
+        if (!user) {
+            res.status(404).json({ error: 'User not found' });
+            return;
+        }
+
+        const password_hash = await bcrypt.hash(new_password, 12);
+        await db('public.users').where({ id }).update({ password_hash });
+
+        logger.info({ adminId: req.user!.id, targetUserId: id }, 'Password reset by admin');
+        res.json({ ok: true });
+    }
+);
+
+/**
  * DELETE /auth/users/:id
  * Deactivate staff account — admin only (soft delete)
  */

@@ -32,6 +32,10 @@ export default function UserTable({ initialUsers }: Props) {
     const [filterRole, setFilterRole] = useState<string>('all')
     const [isPending, startTransition] = useTransition()
     const [error, setError] = useState<string | null>(null)
+    const [resetTarget, setResetTarget] = useState<StaffUser | null>(null)
+    const [resetPassword, setResetPassword] = useState('')
+    const [resetError, setResetError] = useState<string | null>(null)
+    const [resetSuccess, setResetSuccess] = useState(false)
 
     const filtered = filterRole === 'all' ? users : users.filter((u) => u.role === filterRole)
 
@@ -83,6 +87,34 @@ export default function UserTable({ initialUsers }: Props) {
             })
             if (res.ok) {
                 setUsers((prev) => prev.filter((u) => u.id !== id))
+            }
+        })
+    }
+
+    const handleResetPassword = () => {
+        if (!resetTarget) return
+        setResetError(null)
+        if (resetPassword.length < 8) {
+            setResetError('รหัสผ่านต้องมีอย่างน้อย 8 ตัวอักษร')
+            return
+        }
+        startTransition(async () => {
+            const res = await fetch(`${API_BASE}/auth/users/${resetTarget.id}/reset-password`, {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ new_password: resetPassword }),
+            })
+            if (res.ok) {
+                setResetSuccess(true)
+                setResetPassword('')
+                setTimeout(() => {
+                    setResetTarget(null)
+                    setResetSuccess(false)
+                }, 2000)
+            } else {
+                const body = await res.json().catch(() => ({}))
+                setResetError(body?.error ?? 'เกิดข้อผิดพลาด')
             }
         })
     }
@@ -261,6 +293,50 @@ export default function UserTable({ initialUsers }: Props) {
                 </div>
             )}
 
+            {/* Reset Password Modal */}
+            {resetTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
+                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
+                        <h2 className="text-base font-bold text-gray-900">Reset รหัสผ่าน</h2>
+                        <p className="text-sm text-gray-600">
+                            ตั้งรหัสผ่านใหม่ให้ <span className="font-semibold">{resetTarget.name}</span>
+                        </p>
+                        {resetError && (
+                            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{resetError}</p>
+                        )}
+                        {resetSuccess && (
+                            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">✅ Reset รหัสผ่านเรียบร้อย</p>
+                        )}
+                        <div>
+                            <label className="label">รหัสผ่านใหม่ * <span className="text-gray-400 font-normal">(อย่างน้อย 8 ตัวอักษร)</span></label>
+                            <input
+                                type="password"
+                                className="input"
+                                value={resetPassword}
+                                onChange={(e) => setResetPassword(e.target.value)}
+                                disabled={isPending || resetSuccess}
+                                autoFocus
+                            />
+                        </div>
+                        <div className="flex gap-2 pt-1">
+                            <button
+                                onClick={handleResetPassword}
+                                disabled={isPending || resetSuccess}
+                                className="btn-primary flex-1 disabled:opacity-50"
+                            >
+                                {isPending ? 'กำลังบันทึก...' : 'ยืนยัน Reset'}
+                            </button>
+                            <button
+                                onClick={() => { setResetTarget(null); setResetPassword(''); setResetError(null); setResetSuccess(false) }}
+                                className="btn-secondary flex-1"
+                            >
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Table */}
             {filtered.length === 0 ? (
                 <div className="card py-16 text-center text-gray-400">
@@ -302,6 +378,14 @@ export default function UserTable({ initialUsers }: Props) {
                             <p className="text-xs text-gray-400 shrink-0 hidden sm:block">
                                 {new Date(u.created_at).toLocaleDateString('th-TH', { dateStyle: 'short' })}
                             </p>
+                            {/* Reset password */}
+                            <button
+                                onClick={() => { setResetTarget(u); setResetPassword(''); setResetError(null); setResetSuccess(false) }}
+                                disabled={isPending}
+                                className="text-xs px-2.5 py-1 rounded-lg border border-gray-200 text-gray-600 hover:bg-gray-50 transition-colors disabled:opacity-50 shrink-0"
+                            >
+                                🔑 Reset
+                            </button>
                             {/* Deactivate */}
                             <button
                                 onClick={() => handleDeactivate(u.id, u.name)}

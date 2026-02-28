@@ -61,6 +61,12 @@ const ClipboardIcon = () => (
     </svg>
 )
 
+const KeyIcon = () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M15 7a2 2 0 012 2m4 0a6 6 0 01-7.743 5.743L11 17H9v2H7v2H4a1 1 0 01-1-1v-2.586a1 1 0 01.293-.707l5.964-5.964A6 6 0 1121 9z" />
+    </svg>
+)
+
 const navItems: NavItem[] = [
     { href: '/advisor/appointments', label: 'นัดหมายของฉัน', icon: <CalendarIcon />, roles: ['advisor'] },
     { href: '/advisor/slots', label: 'จัดการตารางเวลา', icon: <ClockIcon />, roles: ['advisor'] },
@@ -72,6 +78,7 @@ const navItems: NavItem[] = [
     { href: '/admin/resources', label: 'แหล่งช่วยเหลือ', icon: <BookOpenIcon />, roles: ['admin'] },
     { href: '/admin/users', label: 'จัดการบัญชีพนักงาน', icon: <UsersIcon />, roles: ['admin'] },
     { href: '/admin/students', label: 'รายชื่อนักศึกษา', icon: <AcademicCapIcon />, roles: ['admin'] },
+    { href: '/settings/password', label: 'เปลี่ยนรหัสผ่าน', icon: <KeyIcon />, roles: ['advisor', 'counselor', 'admin'] },
 ]
 
 interface SidebarProps {
