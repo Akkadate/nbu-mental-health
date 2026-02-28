@@ -43,3 +43,11 @@ Param:
 {
     "richMenuId": "richmenu-960cff2631662987cc6e8f92565e55d8"
 }
+
+
+-------------------------
+***Verified Rich Menu 2
+
+{
+    "richMenuId": "richmenu-34252f1da173721b522f341e58d83e64"
+}

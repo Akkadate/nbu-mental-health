@@ -67,7 +67,7 @@ export const LiffScreeningRequest = z.object({
     intent: z.enum(['academic', 'stress', 'relationship', 'sleep', 'other', 'unsure']).optional().default('unsure'),
     answers: z.array(z.object({
         question_id: z.number().int().min(1),
-        score: z.number().int().min(0).max(3),
+        score: z.number().int().min(0).max(4), // max 4 for ST-5 (0-4 scale)
     })).min(1),
 });
 

@@ -290,3 +290,15 @@ RICH_MENU_VERIFIED_ID=
 - [ ] Build + restart API: `pm2 restart nbu-api`
 - [ ] ทดสอบ Follow → ได้ Welcome message + Guest menu
 - [ ] ทดสอบ Verify → ยืนยันสำเร็จ → สลับเป็น Verified menu
+
+
+
+จากที่จำไว้ใน memory ครับ — LINE API ไม่รองรับการแก้ rich menu ที่มีอยู่แล้ว ต้องสร้างใหม่ทั้งหมด
+
+ขั้นตอนที่ต้องทำ:
+
+1. สร้าง rich menu ใหม่ผ่าน LINE API
+2. Upload รูปภาพ
+3. Set as default (optional)
+4. อัปเดต RICH_MENU_VERIFIED_ID ใน .env
+5. pm2 restart 16 (ไม่ต้อง rebuild)

@@ -17,9 +17,11 @@ const GAD7_THRESHOLDS = {
 
 // ─── Stress Mini scoring ───
 
+// ST-5: 5 questions × 0-4 scale = max 20
+// กรมสุขภาพจิต: 0-4=ต่ำ, 5-7=น้อย, 8-12=ปานกลาง, 13-20=มาก/รุนแรง
 const STRESS_THRESHOLDS = {
-    HIGH: 9,
-    MODERATE: 5,
+    HIGH: 13,
+    MODERATE: 8,
 };
 
 export interface ScoreResult {
