@@ -5,7 +5,7 @@ import CaseQueue from './_components/CaseQueue'
 export const metadata: Metadata = { title: 'คิวเคส' }
 
 export default async function CounselorCasesPage() {
-    const cases = await getCasesApi('open').catch(() => [])
+    const cases = await getCasesApi().catch(() => [])
 
     return (
         <div>
