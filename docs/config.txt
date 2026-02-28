@@ -1,0 +1,59 @@
+ให้คุณเรียงเรียงข้อความนี้ให้สละสรวย "หลังจากวันประชุม ให้ท่านใช้งานและตรวจสอบความถูกต้อง หากพบข้อผิดพลาดให้แจ้งภายในวันที่ 15 มีนาคม 2569 ซึ่งหลังจากวันดังกล่าว ทางสำนักจะถือว่าระบบทำงานถูกต้อง "
+
+ในมุม Mental Health Service: หลักการ Low-Barrier Access ควรให้ แนะนำแต่ไม่บังคับ เพราะถ้านศ. พร้อมจะพูดคุยกับนักจิตวิทยาแล้ว ไม่ควรมีอุปสรรคเพิ่ม
+
+อยากให้ปรับเป็น "บังคับประเมินก่อนนัดหมาย" ไหมครับ? หรือคงเป็น "แนะนำแต่ไม่บังคับ" ตามที่ออกแบบอยู่?
+
+
+Agent terminated due to error
+You can prompt the model to try again or start a new conversation if the error persists.
+
+
+สิ่งที่คุณกำลังทำ
+Creating admin/resources and admin/users pages with full CRUD components
+
+2
+Creating ResourceManager and UserTable client components
+
+3
+Creating User Management page and adding API routes for staff management
+
+4
+Creating User Management page, UserTable component, and updating Sidebar navigation
+
+
+https://mentalhealth.northbkk.ac.th
+
+
+
+
+LINE_CHANNEL_SECRET=50adf7501beea810ec77e65ee0b33b17
+LINE_CHANNEL_ACCESS_TOKEN=5xsB6v6sNze+fuaImuUeFJ86pitt+1/u904pD3BrSkaPN6rzE7+2MJq5NVrzyn5z9maXJ/umLZhUeK0wCjv0qBHxmrCfAiMsZJ5t+b5VMp45rVeJ2SYhsbRCEAB7Z/J/Y1A+wDgh5oDelW9p6GSUBgdB04t89/1O/w1cDnyilF>
+
+LIFF_VERIFY_ID=2009129078-J0PczVce
+LIFF_SCREENING_ID=2009129078-jmbLVA76
+LIFF_BOOKING_ID=2009129078-LlTYkSPM
+LIFF_LINK_STAFF_ID=2009129078-r3ENNYDC
+
+สร้าง random 64 chars: openssl rand -hex 32 สร้างอย่างไร
+ผมสร้าง liff มา 4 อัน แต่ผมยังไม่รู้ว่าจะ Endpoint URL อะไร ผมใส่ https://mentalhealth.northbkk.ac.th ไปก่อน จริงๆต้องเป็นอะไร
+
+RICH_MENU_GUEST_ID และ  RICH_MENU_VERIFIED_ID ยังไม่ได้สร้าง ต้องมีอะไรใน rich menu ทั้งสองบ้าง
+
+LIFF_VERIFY_ID ใน .env  กับ  NEXT_PUBLIC_LIFF_ID_VERIFY ใน apps/liff/.env.local อันเดียวกันไหม
+
+ข้อมูที่ update ใน .env
+
+LINE_CHANNEL_SECRET=50adf7501beea810ec77e65ee0b33b17
+LINE_CHANNEL_ACCESS_TOKEN=5xsB6v6sNze+fuaImuUeFJ86pitt+1/u904pD3BrSkaPN6rzE7+2MJq5NVrzyn5z9maXJ/umLZhUeK0wCjv0qBHxmrCfAiMsZJ5t+b5VMp45rVeJ2SYhsbRCEAB7Z/J/Y1A+wDgh5oDelW9p6GSUBgdB04t89/1O/w1cDnyilF>
+
+LIFF_VERIFY_ID=2009129078-J0PczVce
+LIFF_SCREENING_ID=2009129078-jmbLVA76
+LIFF_BOOKING_ID=2009129078-LlTYkSPM
+LIFF_LINK_STAFF_ID=2009129078-r3ENNYDC
+
+psql "$DATABASE_URL" -c "UPDATE public.users SET password_hash = '$2a$12$j6oVA5godXpDHybdoKBdruTwUbpnj1/SW8qA9Z6woEOx.27EkZKUy' WHERE email = 'admin@northbkk.ac.th';"
+
+
+
+

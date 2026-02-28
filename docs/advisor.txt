@@ -1,0 +1,9 @@
+
+
+Option B — Assigned Advisor (ตรงกับความเป็นจริงมากที่สุด)
+เพิ่มตาราง public.student_advisors (student_id → advisor_id)
+
+นักศึกษาจองได้เฉพาะกับ advisor ของตัวเอง + advisor เห็นเฉพาะนักศึกษาของตัวเอง
+
+ตรงกับระบบมหาวิทยาลัยจริง
+ต้อง import ข้อมูล advisor-student mapping ก่อน
