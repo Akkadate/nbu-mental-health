@@ -71,6 +71,7 @@ export interface Appointment {
     scheduled_at: string
     mode: 'online' | 'onsite'
     status: 'scheduled' | 'completed' | 'cancelled' | 'no_show'
+    advisor_note?: string | null
     created_at: string
 }
 

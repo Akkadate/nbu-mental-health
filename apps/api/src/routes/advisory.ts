@@ -120,24 +120,42 @@ router.delete('/slots/:id',
 
 /**
  * PATCH /advisory/appointments/:id
- * Update appointment status — advisor role
+ * Update appointment status and/or advisor note — advisor role
  */
 router.patch('/appointments/:id',
     authenticate,
     authorize('advisor', 'admin'),
     async (req: Request, res: Response) => {
         const { id } = req.params;
-        const { status } = req.body as { status?: string };
+        const { status, advisor_note } = req.body as { status?: string; advisor_note?: string };
 
-        const allowed = ['scheduled', 'completed', 'cancelled', 'no_show'];
-        if (!status || !allowed.includes(status)) {
-            res.status(400).json({ error: 'Invalid status value' });
+        const updatePayload: Record<string, any> = { updated_at: new Date() };
+
+        if (status !== undefined) {
+            const allowed = ['scheduled', 'completed', 'cancelled', 'no_show'];
+            if (!allowed.includes(status)) {
+                res.status(400).json({ error: 'Invalid status value' });
+                return;
+            }
+            updatePayload.status = status;
+        }
+
+        if (advisor_note !== undefined) {
+            if (typeof advisor_note !== 'string' || advisor_note.length > 5000) {
+                res.status(400).json({ error: 'Invalid advisor_note' });
+                return;
+            }
+            updatePayload.advisor_note = advisor_note.trim();
+        }
+
+        if (Object.keys(updatePayload).length === 1) { // only updated_at
+            res.status(400).json({ error: 'Nothing to update' });
             return;
         }
 
         const [updated] = await db('advisory.appointments')
             .where({ id })
-            .update({ status, updated_at: new Date() })
+            .update(updatePayload)
             .returning('*');
 
         if (!updated) {
