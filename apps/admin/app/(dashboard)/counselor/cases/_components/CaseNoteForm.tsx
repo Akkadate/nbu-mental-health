@@ -26,7 +26,7 @@ export default function CaseNoteForm({ caseId }: CaseNoteFormProps) {
                 const res = await fetch(`${API_BASE}/clinical/case-notes`, {
                     method: 'POST',
                     headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({ caseId, noteText: note }),
+                    body: JSON.stringify({ case_id: caseId, note }),
                     credentials: 'include',
                 })
                 if (!res.ok) throw new Error('Server error')
