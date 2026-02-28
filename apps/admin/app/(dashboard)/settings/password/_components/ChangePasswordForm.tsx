@@ -10,6 +10,9 @@ export default function ChangePasswordForm() {
     const [success, setSuccess] = useState(false)
     const [isPending, startTransition] = useTransition()
 
+    const inputCls = 'w-full px-3.5 py-2.5 rounded-lg border border-[--color-border] bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-500'
+    const labelCls = 'block text-sm font-medium text-gray-700 mb-1.5'
+
     const handleSubmit = (e: React.FormEvent) => {
         e.preventDefault()
         setError(null)
@@ -46,22 +49,27 @@ export default function ChangePasswordForm() {
     }
 
     return (
-        <div className="card">
-            <form onSubmit={handleSubmit} className="space-y-4">
+        <div className="bg-white rounded-2xl border border-[--color-border] shadow-sm p-6">
+            <form onSubmit={handleSubmit} className="space-y-5">
                 {error && (
-                    <p className="text-sm text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{error}</p>
+                    <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                        <span className="text-red-500 text-base shrink-0 mt-0.5">⚠</span>
+                        <p className="text-sm text-red-700">{error}</p>
+                    </div>
                 )}
                 {success && (
-                    <p className="text-sm text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">
-                        ✅ เปลี่ยนรหัสผ่านเรียบร้อยแล้ว
-                    </p>
+                    <div className="flex items-start gap-2.5 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                        <span className="text-green-500 text-base shrink-0 mt-0.5">✓</span>
+                        <p className="text-sm text-green-700">เปลี่ยนรหัสผ่านเรียบร้อยแล้ว</p>
+                    </div>
                 )}
 
                 <div>
-                    <label className="label">รหัสผ่านปัจจุบัน *</label>
+                    <label className={labelCls}>รหัสผ่านปัจจุบัน <span className="text-red-500">*</span></label>
                     <input
                         type="password"
-                        className="input"
+                        className={inputCls}
+                        placeholder="••••••••"
                         value={form.current}
                         onChange={(e) => setForm((f) => ({ ...f, current: e.target.value }))}
                         disabled={isPending}
@@ -69,34 +77,49 @@ export default function ChangePasswordForm() {
                     />
                 </div>
 
-                <div>
-                    <label className="label">รหัสผ่านใหม่ * <span className="text-gray-400 font-normal">(อย่างน้อย 8 ตัวอักษร)</span></label>
-                    <input
-                        type="password"
-                        className="input"
-                        value={form.next}
-                        onChange={(e) => setForm((f) => ({ ...f, next: e.target.value }))}
-                        disabled={isPending}
-                        autoComplete="new-password"
-                    />
-                </div>
+                <div className="border-t border-[--color-border] pt-5">
+                    <div className="space-y-4">
+                        <div>
+                            <label className={labelCls}>
+                                รหัสผ่านใหม่ <span className="text-red-500">*</span>
+                                <span className="ml-1.5 text-xs font-normal text-gray-400">(อย่างน้อย 8 ตัวอักษร)</span>
+                            </label>
+                            <input
+                                type="password"
+                                className={inputCls}
+                                placeholder="••••••••"
+                                value={form.next}
+                                onChange={(e) => setForm((f) => ({ ...f, next: e.target.value }))}
+                                disabled={isPending}
+                                autoComplete="new-password"
+                            />
+                        </div>
 
-                <div>
-                    <label className="label">ยืนยันรหัสผ่านใหม่ *</label>
-                    <input
-                        type="password"
-                        className="input"
-                        value={form.confirm}
-                        onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
-                        disabled={isPending}
-                        autoComplete="new-password"
-                    />
+                        <div>
+                            <label className={labelCls}>ยืนยันรหัสผ่านใหม่ <span className="text-red-500">*</span></label>
+                            <input
+                                type="password"
+                                className={inputCls}
+                                placeholder="••••••••"
+                                value={form.confirm}
+                                onChange={(e) => setForm((f) => ({ ...f, confirm: e.target.value }))}
+                                disabled={isPending}
+                                autoComplete="new-password"
+                            />
+                            {form.confirm && form.next && form.confirm !== form.next && (
+                                <p className="mt-1.5 text-xs text-red-500">รหัสผ่านไม่ตรงกัน</p>
+                            )}
+                            {form.confirm && form.next && form.confirm === form.next && (
+                                <p className="mt-1.5 text-xs text-green-600">✓ รหัสผ่านตรงกัน</p>
+                            )}
+                        </div>
+                    </div>
                 </div>
 
                 <button
                     type="submit"
                     disabled={isPending}
-                    className="btn-primary w-full disabled:opacity-50"
+                    className="w-full py-2.5 px-4 bg-gradient-to-r from-brand-600 to-brand-500 text-white text-sm font-semibold rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                 >
                     {isPending ? 'กำลังบันทึก...' : 'เปลี่ยนรหัสผ่าน'}
                 </button>

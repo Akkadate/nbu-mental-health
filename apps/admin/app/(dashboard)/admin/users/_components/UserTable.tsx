@@ -295,40 +295,64 @@ export default function UserTable({ initialUsers }: Props) {
 
             {/* Reset Password Modal */}
             {resetTarget && (
-                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/40 p-4">
-                    <div className="bg-white rounded-2xl shadow-xl w-full max-w-sm p-6 space-y-4">
-                        <h2 className="text-base font-bold text-gray-900">Reset รหัสผ่าน</h2>
-                        <p className="text-sm text-gray-600">
-                            ตั้งรหัสผ่านใหม่ให้ <span className="font-semibold">{resetTarget.name}</span>
-                        </p>
-                        {resetError && (
-                            <p className="text-xs text-red-600 bg-red-50 border border-red-200 rounded-lg px-3 py-2">{resetError}</p>
-                        )}
-                        {resetSuccess && (
-                            <p className="text-xs text-green-700 bg-green-50 border border-green-200 rounded-lg px-3 py-2">✅ Reset รหัสผ่านเรียบร้อย</p>
-                        )}
-                        <div>
-                            <label className="label">รหัสผ่านใหม่ * <span className="text-gray-400 font-normal">(อย่างน้อย 8 ตัวอักษร)</span></label>
-                            <input
-                                type="password"
-                                className="input"
-                                value={resetPassword}
-                                onChange={(e) => setResetPassword(e.target.value)}
-                                disabled={isPending || resetSuccess}
-                                autoFocus
-                            />
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                        {/* Header */}
+                        <div className="px-6 py-5 border-b border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center shrink-0">
+                                    <span className="text-lg">🔑</span>
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-gray-900">ตั้งรหัสผ่านใหม่</h2>
+                                    <p className="text-xs text-gray-500 mt-0.5">สำหรับ {resetTarget.name}</p>
+                                </div>
+                            </div>
                         </div>
-                        <div className="flex gap-2 pt-1">
+
+                        {/* Body */}
+                        <div className="px-6 py-5 space-y-4">
+                            {resetError && (
+                                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                                    <span className="text-red-500 shrink-0 mt-0.5">⚠</span>
+                                    <p className="text-sm text-red-700">{resetError}</p>
+                                </div>
+                            )}
+                            {resetSuccess && (
+                                <div className="flex items-start gap-2.5 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                                    <span className="text-green-500 shrink-0 mt-0.5">✓</span>
+                                    <p className="text-sm text-green-700">ตั้งรหัสผ่านใหม่เรียบร้อยแล้ว</p>
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    รหัสผ่านใหม่ <span className="text-red-500">*</span>
+                                    <span className="ml-1.5 text-xs font-normal text-gray-400">(อย่างน้อย 8 ตัวอักษร)</span>
+                                </label>
+                                <input
+                                    type="password"
+                                    className="w-full px-3.5 py-2.5 rounded-lg border border-[--color-border] bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow placeholder-gray-400 disabled:bg-gray-50 disabled:text-gray-500"
+                                    placeholder="••••••••"
+                                    value={resetPassword}
+                                    onChange={(e) => setResetPassword(e.target.value)}
+                                    disabled={isPending || resetSuccess}
+                                    autoFocus
+                                />
+                            </div>
+                        </div>
+
+                        {/* Footer */}
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-2.5">
                             <button
                                 onClick={handleResetPassword}
                                 disabled={isPending || resetSuccess}
-                                className="btn-primary flex-1 disabled:opacity-50"
+                                className="flex-1 py-2.5 px-4 bg-gradient-to-r from-brand-600 to-brand-500 text-white text-sm font-semibold rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-600 focus:outline-none focus:ring-2 focus:ring-brand-500 focus:ring-offset-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
                             >
-                                {isPending ? 'กำลังบันทึก...' : 'ยืนยัน Reset'}
+                                {isPending ? 'กำลังบันทึก...' : 'ยืนยัน'}
                             </button>
                             <button
                                 onClick={() => { setResetTarget(null); setResetPassword(''); setResetError(null); setResetSuccess(false) }}
-                                className="btn-secondary flex-1"
+                                className="flex-1 py-2.5 px-4 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-gray-300 transition-colors"
                             >
                                 ยกเลิก
                             </button>
