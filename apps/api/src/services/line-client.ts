@@ -729,6 +729,54 @@ export function buildAppointmentListMessage(appts: AppointmentCardItem[]): messa
     };
 }
 
+// ─── Resource Category Picker ───
+// Single card shown first — user picks a category, then sees filtered resources
+
+export function buildResourceCategoryPickerMessage(): messagingApi.FlexMessage {
+    const categories: { label: string; icon: string; value: string; color: string }[] = [
+        { label: 'สุขภาพจิต',      icon: '🧠', value: 'สุขภาพจิต',     color: '#2E7D32' },
+        { label: 'ความเครียด',     icon: '😮‍💨', value: 'ความเครียด',    color: '#E65100' },
+        { label: 'การเรียน',       icon: '📚', value: 'การเรียน',      color: '#1565C0' },
+        { label: 'ความสัมพันธ์',   icon: '💛', value: 'ความสัมพันธ์',  color: '#AD1457' },
+        { label: 'ฉุกเฉิน',        icon: '🚨', value: 'ฉุกเฉิน',       color: '#B71C1C' },
+    ];
+
+    return {
+        type: 'flex',
+        altText: '📚 เลือกหมวดหมู่แหล่งช่วยเหลือ',
+        contents: {
+            type: 'bubble',
+            styles: { header: { backgroundColor: '#37474F' } },
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                contents: [
+                    { type: 'text', text: '📚 แหล่งช่วยเหลือตนเอง', color: '#FFFFFF', weight: 'bold', size: 'xl' },
+                    { type: 'text', text: 'เลือกหมวดหมู่ที่คุณสนใจ', color: '#B0BEC5', size: 'sm', margin: 'xs' },
+                ],
+            },
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'sm',
+                paddingAll: 'lg',
+                contents: categories.map((cat) => ({
+                    type: 'button' as const,
+                    action: {
+                        type: 'postback' as const,
+                        label: `${cat.icon}  ${cat.label}`,
+                        data: `action=resources&category=${encodeURIComponent(cat.value)}`,
+                    },
+                    style: 'secondary' as const,
+                    height: 'sm' as const,
+                    color: cat.color,
+                })),
+            },
+        },
+    };
+}
+
 // ─── Resources Carousel Message ───
 // Category-colored card carousel for self-help resources
 

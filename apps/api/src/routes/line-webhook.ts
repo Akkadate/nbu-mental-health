@@ -13,6 +13,7 @@ import {
     buildScreeningInviteMessage,
     buildNoAppointmentsMessage,
     buildAppointmentListMessage,
+    buildResourceCategoryPickerMessage,
     buildResourcesMessage,
     assignGuestMenu,
     assignVerifiedMenu,
@@ -185,15 +186,21 @@ async function handleBookingGate(userId: string): Promise<void> {
 // ─── Resources ───
 
 async function handleResources(userId: string, category: string | null): Promise<void> {
-    let query = db('public.resources').where({ is_active: true });
-    if (category) query = query.where({ category });
+    // No category selected → show category picker card
+    if (!category) {
+        await pushMessage(userId, [buildResourceCategoryPickerMessage()]);
+        return;
+    }
 
-    const resources = await query.limit(10);
+    const resources = await db('public.resources')
+        .where({ is_active: true, category })
+        .orderBy('created_at', 'desc')
+        .limit(5);
 
     if (resources.length === 0) {
         await pushMessage(userId, [{
             type: 'text',
-            text: '📚 ยังไม่มีแหล่งช่วยเหลือในขณะนี้ กรุณาลองใหม่ภายหลัง',
+            text: `📚 ยังไม่มีบทความในหมวด "${category}" กรุณาลองหมวดอื่น`,
         }]);
         return;
     }
