@@ -171,7 +171,7 @@ export function buildSoftGateMessage(): messagingApi.FlexMessage {
                             uri: `https://liff.line.me/${config.LIFF_SCREENING_ID}?next=booking`,
                         },
                         style: 'primary',
-                        color: '#5A9B6E',
+                        color: '#6BA882',
                     },
                     {
                         type: 'button',
@@ -220,7 +220,7 @@ export function buildScreeningResultMessage(
                 uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}`,
             },
             style: 'primary',
-            color: '#5585A8',
+            color: '#6699BB',
         });
     }
 
@@ -332,7 +332,7 @@ export function buildSafetyPackMessage(): messagingApi.FlexMessage {
                             uri: 'tel:1323',
                         },
                         style: 'primary',
-                        color: '#B05A5A',
+                        color: '#C47878',
                     },
                     {
                         type: 'button',
@@ -440,14 +440,14 @@ export function buildBookingReadyMessage(): messagingApi.FlexMessage {
         altText: '📅 เลือกประเภทการนัดหมาย',
         contents: {
             type: 'bubble',
-            styles: { header: { backgroundColor: '#4A7FA3' } },
+            styles: { header: { backgroundColor: '#6699BB' }, body: { backgroundColor: '#EEF4FA' } },
             header: {
                 type: 'box',
                 layout: 'vertical',
                 paddingAll: 'lg',
                 contents: [
                     { type: 'text', text: '📅 ระบบนัดหมาย', color: '#FFFFFF', weight: 'bold', size: 'xl' },
-                    { type: 'text', text: 'เลือกผู้เชี่ยวชาญที่ต้องการนัดพบ', color: '#D6EBF5', size: 'sm', margin: 'xs' },
+                    { type: 'text', text: 'เลือกผู้เชี่ยวชาญที่ต้องการนัดพบ', color: '#E8F2FA', size: 'sm', margin: 'xs' },
                 ],
             },
             body: {
@@ -513,7 +513,7 @@ export function buildBookingReadyMessage(): messagingApi.FlexMessage {
                             uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}?type=counselor`,
                         },
                         style: 'primary',
-                        color: '#4A7FA3',
+                        color: '#6699BB',
                         height: 'sm',
                     },
                 ],
@@ -531,14 +531,14 @@ export function buildScreeningInviteMessage(): messagingApi.FlexMessage {
         altText: '🧠 ทำแบบประเมินสุขภาพจิต',
         contents: {
             type: 'bubble',
-            styles: { header: { backgroundColor: '#4A8E62' } },
+            styles: { header: { backgroundColor: '#6BA882' }, body: { backgroundColor: '#EEF7F1' } },
             header: {
                 type: 'box',
                 layout: 'vertical',
                 paddingAll: 'lg',
                 contents: [
                     { type: 'text', text: '🧠 ประเมินสุขภาพจิต', color: '#FFFFFF', weight: 'bold', size: 'xl' },
-                    { type: 'text', text: 'เข้าใจตัวเองและรับคำแนะนำที่เหมาะสม', color: '#D7F0DC', size: 'sm', margin: 'xs' },
+                    { type: 'text', text: 'เข้าใจตัวเองและรับคำแนะนำที่เหมาะสม', color: '#E2F5E8', size: 'sm', margin: 'xs' },
                 ],
             },
             body: {
@@ -595,7 +595,7 @@ export function buildScreeningInviteMessage(): messagingApi.FlexMessage {
                             uri: `https://liff.line.me/${config.LIFF_SCREENING_ID}`,
                         },
                         style: 'primary',
-                        color: '#4A8E62',
+                        color: '#6BA882',
                     },
                 ],
             },
@@ -636,7 +636,7 @@ export function buildNoAppointmentsMessage(): messagingApi.FlexMessage {
                         type: 'button',
                         action: { type: 'postback', label: '📅 จองนัดหมายใหม่', data: 'action=booking_gate' },
                         style: 'primary',
-                        color: '#4A7FA3',
+                        color: '#6699BB',
                     },
                 ],
             },
@@ -660,7 +660,7 @@ export function buildAppointmentListMessage(appts: AppointmentCardItem[]): messa
         const typeLabel = isAdvisor ? 'อาจารย์ที่ปรึกษา' : 'นักจิตวิทยา';
         const typeIcon = isAdvisor ? '👔' : '🩺';
         const modeLabel = a.mode === 'online' ? '🌐 ออนไลน์' : '📍 มาพบตัว';
-        const headerColor = isAdvisor ? '#607D8B' : '#4A7FA3';
+        const headerColor = isAdvisor ? '#7A9EAD' : '#6699BB';
 
         return {
             type: 'bubble' as const,
@@ -714,7 +714,7 @@ export function buildAppointmentListMessage(appts: AppointmentCardItem[]): messa
                             data: `action=cancel_appt&appt_id=${a.id}&appt_type=${a.type}`,
                         },
                         style: 'link' as const,
-                        color: '#A85A5A',
+                        color: '#C47878',
                         height: 'sm' as const,
                     },
                 ],
@@ -734,11 +734,11 @@ export function buildAppointmentListMessage(appts: AppointmentCardItem[]): messa
 
 export function buildResourceCategoryPickerMessage(): messagingApi.FlexMessage {
     const categories: { label: string; icon: string; value: string; color: string }[] = [
-        { label: 'สุขภาพจิต',      icon: '🧠', value: 'สุขภาพจิต',     color: '#4A8E62' },
-        { label: 'ความเครียด',     icon: '😮‍💨', value: 'ความเครียด',    color: '#B8794A' },
-        { label: 'การเรียน',       icon: '📚', value: 'การเรียน',      color: '#4A7FA3' },
-        { label: 'ความสัมพันธ์',   icon: '💛', value: 'ความสัมพันธ์',  color: '#9B6B88' },
-        { label: 'ฉุกเฉิน',        icon: '🚨', value: 'ฉุกเฉิน',       color: '#A85A5A' },
+        { label: 'สุขภาพจิต',      icon: '🧠', value: 'สุขภาพจิต',     color: '#6BA882' },
+        { label: 'ความเครียด',     icon: '😮‍💨', value: 'ความเครียด',    color: '#C49A72' },
+        { label: 'การเรียน',       icon: '📚', value: 'การเรียน',      color: '#6699BB' },
+        { label: 'ความสัมพันธ์',   icon: '💛', value: 'ความสัมพันธ์',  color: '#B894B0' },
+        { label: 'ฉุกเฉิน',        icon: '🚨', value: 'ฉุกเฉิน',       color: '#C47878' },
     ];
 
     return {
@@ -746,14 +746,14 @@ export function buildResourceCategoryPickerMessage(): messagingApi.FlexMessage {
         altText: '📚 เลือกหมวดหมู่แหล่งช่วยเหลือ',
         contents: {
             type: 'bubble',
-            styles: { header: { backgroundColor: '#607D8B' } },
+            styles: { header: { backgroundColor: '#7A9EAD' }, body: { backgroundColor: '#EEF3F6' } },
             header: {
                 type: 'box',
                 layout: 'vertical',
                 paddingAll: 'lg',
                 contents: [
                     { type: 'text', text: '📚 แหล่งช่วยเหลือตนเอง', color: '#FFFFFF', weight: 'bold', size: 'xl' },
-                    { type: 'text', text: 'เลือกหมวดหมู่ที่คุณสนใจ', color: '#D6E4EA', size: 'sm', margin: 'xs' },
+                    { type: 'text', text: 'เลือกหมวดหมู่ที่คุณสนใจ', color: '#E4EEF3', size: 'sm', margin: 'xs' },
                 ],
             },
             body: {
@@ -782,16 +782,16 @@ export function buildResourceCategoryPickerMessage(): messagingApi.FlexMessage {
 
 export function buildResourcesMessage(resources: ResourceItem[]): messagingApi.FlexMessage {
     const categoryColor: Record<string, string> = {
-        'สุขภาพจิต': '#4A8E62',
-        'การเรียน': '#4A7FA3',
-        'ความเครียด': '#B8794A',
-        'ความสัมพันธ์': '#9B6B88',
-        'ฉุกเฉิน': '#A85A5A',
-        'ทั่วไป': '#607D8B',
+        'สุขภาพจิต': '#6BA882',
+        'การเรียน': '#6699BB',
+        'ความเครียด': '#C49A72',
+        'ความสัมพันธ์': '#B894B0',
+        'ฉุกเฉิน': '#C47878',
+        'ทั่วไป': '#7A9EAD',
     };
 
     const bubbles = resources.map((r) => {
-        const color = categoryColor[r.category] ?? '#455A64';
+        const color = categoryColor[r.category] ?? '#7A9EAD';
         const bodyContents: any[] = [
             { type: 'text', text: r.title, weight: 'bold', size: 'sm', wrap: true },
         ];
