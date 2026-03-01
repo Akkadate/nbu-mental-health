@@ -4,6 +4,7 @@ import { logger } from '../logger.js';
 import { verifyLineSignature } from '../middleware/line-signature.js';
 import {
     pushMessage,
+    replyMessage,
     buildWelcomeNewMessage,
     buildWelcomeBackMessage,
     buildSoftGateMessage,
@@ -39,6 +40,22 @@ setInterval(() => {
         if (ts < cutoff) recentPostbacks.delete(uid);
     }
 }, 30_000);
+
+/**
+ * Reply using replyToken when available (LINE auto-scrolls to reply),
+ * otherwise fall back to pushMessage.
+ */
+async function reply(
+    replyToken: string | undefined,
+    userId: string,
+    messages: import('@line/bot-sdk').messagingApi.Message[]
+): Promise<void> {
+    if (replyToken) {
+        await replyMessage(replyToken, messages);
+    } else {
+        await pushMessage(userId, messages);
+    }
+}
 
 /**
  * POST /webhooks/line
@@ -124,23 +141,23 @@ async function handlePostback(userId: string, data: string, replyToken?: string)
 
     switch (action) {
         case 'booking_gate':
-            await handleBookingGate(userId);
+            await handleBookingGate(userId, replyToken);
             break;
 
         case 'resources':
-            await handleResources(userId, params.get('category'));
+            await handleResources(userId, params.get('category'), replyToken);
             break;
 
         case 'my_appointments':
-            await handleMyAppointments(userId);
+            await handleMyAppointments(userId, replyToken);
             break;
 
         case 'cancel_appt':
-            await handleCancelAppt(userId, params.get('appt_id'), params.get('appt_type'));
+            await handleCancelAppt(userId, params.get('appt_id'), params.get('appt_type'), replyToken);
             break;
 
         case 'emergency_info':
-            await pushMessage(userId, [buildSafetyPackMessage()]);
+            await reply(replyToken, userId, [buildSafetyPackMessage()]);
             break;
 
         default:
@@ -150,14 +167,14 @@ async function handlePostback(userId: string, data: string, replyToken?: string)
 
 // ─── Booking Gate (Soft Gate) ───
 
-async function handleBookingGate(userId: string): Promise<void> {
+async function handleBookingGate(userId: string, replyToken?: string): Promise<void> {
     // Find student
     const lineLink = await db('public.line_links')
         .where({ line_user_id: userId })
         .first();
 
     if (!lineLink) {
-        await pushMessage(userId, [{
+        await reply(replyToken, userId, [{
             type: 'text',
             text: 'กรุณายืนยันตัวตนก่อนใช้งาน 🔐\nกดปุ่ม "ยืนยันตัวตน" ที่เมนูด้านล่าง',
         }]);
@@ -175,20 +192,18 @@ async function handleBookingGate(userId: string): Promise<void> {
         .first();
 
     if (recentScreening) {
-        // Has recent screening → show booking card with advisor/counselor options
-        await pushMessage(userId, [buildBookingReadyMessage()]);
+        await reply(replyToken, userId, [buildBookingReadyMessage()]);
     } else {
-        // No recent screening → show Soft Gate
-        await pushMessage(userId, [buildSoftGateMessage()]);
+        await reply(replyToken, userId, [buildSoftGateMessage()]);
     }
 }
 
 // ─── Resources ───
 
-async function handleResources(userId: string, category: string | null): Promise<void> {
+async function handleResources(userId: string, category: string | null, replyToken?: string): Promise<void> {
     // No category selected → show category picker card
     if (!category) {
-        await pushMessage(userId, [buildResourceCategoryPickerMessage()]);
+        await reply(replyToken, userId, [buildResourceCategoryPickerMessage()]);
         return;
     }
 
@@ -198,14 +213,14 @@ async function handleResources(userId: string, category: string | null): Promise
         .limit(5);
 
     if (resources.length === 0) {
-        await pushMessage(userId, [{
+        await reply(replyToken, userId, [{
             type: 'text',
             text: `📚 ยังไม่มีบทความในหมวด "${category}" กรุณาลองหมวดอื่น`,
         }]);
         return;
     }
 
-    await pushMessage(userId, [buildResourcesMessage(resources.map((r: any) => ({
+    await reply(replyToken, userId, [buildResourcesMessage(resources.map((r: any) => ({
         title: r.title,
         category: r.category,
         description: r.content_markdown ?? null,
@@ -215,7 +230,7 @@ async function handleResources(userId: string, category: string | null): Promise
 
 // ─── My Appointments ───
 
-async function handleMyAppointments(userId: string): Promise<void> {
+async function handleMyAppointments(userId: string, replyToken?: string): Promise<void> {
     const lineLink = await db('public.line_links').where({ line_user_id: userId }).first();
     if (!lineLink) return;
 
@@ -240,18 +255,18 @@ async function handleMyAppointments(userId: string): Promise<void> {
     ].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
 
     if (allAppts.length === 0) {
-        await pushMessage(userId, [buildNoAppointmentsMessage()]);
+        await reply(replyToken, userId, [buildNoAppointmentsMessage()]);
         return;
     }
 
-    await pushMessage(userId, [buildAppointmentListMessage(allAppts)]);
+    await reply(replyToken, userId, [buildAppointmentListMessage(allAppts)]);
 }
 
 // ─── Cancel Appointment ───
 
-async function handleCancelAppt(userId: string, apptId: string | null, apptType: string | null): Promise<void> {
+async function handleCancelAppt(userId: string, apptId: string | null, apptType: string | null, replyToken?: string): Promise<void> {
     if (!apptId) {
-        await pushMessage(userId, [{ type: 'text', text: 'ไม่พบข้อมูลนัดหมาย กรุณาลองใหม่' }]);
+        await reply(replyToken, userId, [{ type: 'text', text: 'ไม่พบข้อมูลนัดหมาย กรุณาลองใหม่' }]);
         return;
     }
 
@@ -260,7 +275,7 @@ async function handleCancelAppt(userId: string, apptId: string | null, apptType:
     // Verify ownership via LINE link
     const lineLink = await db('public.line_links').where({ line_user_id: userId }).first();
     if (!lineLink) {
-        await pushMessage(userId, [{ type: 'text', text: 'กรุณายืนยันตัวตนก่อนใช้งาน' }]);
+        await reply(replyToken, userId, [{ type: 'text', text: 'กรุณายืนยันตัวตนก่อนใช้งาน' }]);
         return;
     }
 
@@ -269,7 +284,7 @@ async function handleCancelAppt(userId: string, apptId: string | null, apptType:
         .first();
 
     if (!appt) {
-        await pushMessage(userId, [{ type: 'text', text: 'ไม่พบนัดหมายหรือยกเลิกแล้ว' }]);
+        await reply(replyToken, userId, [{ type: 'text', text: 'ไม่พบนัดหมายหรือยกเลิกแล้ว' }]);
         return;
     }
 
@@ -279,7 +294,7 @@ async function handleCancelAppt(userId: string, apptId: string | null, apptType:
     const dateStr = dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
     const timeStr = dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
 
-    await pushMessage(userId, [{
+    await reply(replyToken, userId, [{
         type: 'text',
         text: `✅ ยกเลิกนัดหมายสำเร็จ\n\n📆 ${dateStr} เวลา ${timeStr}\n\nหากต้องการนัดใหม่ กดปุ่ม "นัดหมาย" ที่เมนูด้านล่าง`,
     }]);
@@ -294,7 +309,7 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
 
     // Staff LINE ID self-lookup command
     if (normalized === '/myid') {
-        await pushMessage(userId, [{
+        await reply(replyToken, userId, [{
             type: 'text',
             text: `🆔 LINE User ID ของคุณคือ:\n${userId}\n\nคัดลอก ID นี้ไปให้ admin เพื่อเชื่อม LINE\nหรือเข้าลิงก์นี้เพื่อเชื่อมด้วยตนเอง:\nhttps://liff.line.me/${config.LIFF_LINK_STAFF_ID}`,
         }]);
@@ -303,7 +318,7 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
 
     // Staff self-link shortcut
     if (normalized === '/linkstaff' || normalized.startsWith('/เชื่อมพนักงาน')) {
-        await pushMessage(userId, [{
+        await reply(replyToken, userId, [{
             type: 'text',
             text: `🔗 เชื่อม LINE กับบัญชีพนักงาน\n\nกดลิงก์ด้านล่างแล้วล็อกอินด้วยอีเมล/รหัสผ่านที่ได้รับจาก admin:\nhttps://liff.line.me/${config.LIFF_LINK_STAFF_ID}`,
         }]);
@@ -312,7 +327,7 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
 
     // Keyword matching
     if (['เริ่มต้น', 'สมัคร', 'ยืนยัน'].some((k) => normalized.includes(k))) {
-        await pushMessage(userId, [{
+        await reply(replyToken, userId, [{
             type: 'text',
             text: `กดปุ่ม 🔐 ยืนยันตัวตน ที่เมนูด้านล่างเพื่อเริ่มใช้งาน\n\nhttps://liff.line.me/${config.LIFF_VERIFY_ID}`,
         }]);
@@ -320,32 +335,32 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
     }
 
     if (['ประเมิน', 'เครียด', 'แบบทดสอบ'].some((k) => normalized.includes(k))) {
-        await pushMessage(userId, [buildScreeningInviteMessage()]);
+        await reply(replyToken, userId, [buildScreeningInviteMessage()]);
         return;
     }
 
     if (['ดูนัด', 'นัดของฉัน', 'นัดไว้', 'นัดหมายของฉัน'].some((k) => normalized.includes(k))) {
-        await handleMyAppointments(userId);
+        await handleMyAppointments(userId, replyToken);
         return;
     }
 
     if (['นัดหมาย', 'จองใหม่', 'นัดใหม่'].some((k) => normalized.includes(k))) {
-        await handleBookingGate(userId);
+        await handleBookingGate(userId, replyToken);
         return;
     }
 
     if (['แหล่งช่วยเหลือ', 'แหล่งข้อมูล', 'บทความ', 'ความรู้'].some((k) => normalized.includes(k))) {
-        await handleResources(userId, null);
+        await handleResources(userId, null, replyToken);
         return;
     }
 
     if (['ฉุกเฉิน', 'ช่วย', 'ไม่ไหว', '1323'].some((k) => normalized.includes(k))) {
-        await pushMessage(userId, [buildSafetyPackMessage()]);
+        await reply(replyToken, userId, [buildSafetyPackMessage()]);
         return;
     }
 
     // Default response
-    await pushMessage(userId, [{
+    await reply(replyToken, userId, [{
         type: 'text',
         text: '🤖 สวัสดีครับ ใช้เมนูด้านล่างเพื่อเข้าถึงบริการต่างๆ\n\nหรือพิมพ์คำค้นหา:\n• "ประเมิน" — ทำแบบประเมิน\n• "นัดหมาย" — จองนัดหมาย\n• "ดูนัด" — ดูนัดหมายของฉัน\n• "แหล่งช่วยเหลือ" — บทความและแหล่งข้อมูล\n• "ฉุกเฉิน" — สายด่วน 1323',
     }]);
