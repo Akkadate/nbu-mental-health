@@ -37,6 +37,11 @@ export default function UserTable({ initialUsers }: Props) {
     const [resetError, setResetError] = useState<string | null>(null)
     const [resetSuccess, setResetSuccess] = useState(false)
 
+    const [meetingTarget, setMeetingTarget] = useState<StaffUser | null>(null)
+    const [meetingUrl, setMeetingUrl] = useState('')
+    const [meetingError, setMeetingError] = useState<string | null>(null)
+    const [meetingSuccess, setMeetingSuccess] = useState(false)
+
     const filtered = filterRole === 'all' ? users : users.filter((u) => u.role === filterRole)
 
     const linkedCount = users.filter((u) => u.line_user_id).length
@@ -115,6 +120,32 @@ export default function UserTable({ initialUsers }: Props) {
             } else {
                 const body = await res.json().catch(() => ({}))
                 setResetError(body?.error ?? 'เกิดข้อผิดพลาด')
+            }
+        })
+    }
+
+    const handleSaveMeetingUrl = () => {
+        if (!meetingTarget) return
+        setMeetingError(null)
+        const url = meetingUrl.trim()
+        if (url && !url.startsWith('https://')) {
+            setMeetingError('URL ต้องขึ้นต้นด้วย https://')
+            return
+        }
+        startTransition(async () => {
+            const res = await fetch(`${API_BASE}/auth/users/${meetingTarget.id}`, {
+                method: 'PATCH',
+                headers: { 'Content-Type': 'application/json' },
+                credentials: 'include',
+                body: JSON.stringify({ meeting_url: url || null }),
+            })
+            if (res.ok) {
+                const updated: StaffUser = await res.json()
+                setUsers((prev) => prev.map((u) => u.id === updated.id ? updated : u))
+                setMeetingSuccess(true)
+                setTimeout(() => { setMeetingTarget(null); setMeetingSuccess(false) }, 1500)
+            } else {
+                setMeetingError('บันทึกไม่สำเร็จ กรุณาลองใหม่')
             }
         })
     }
@@ -361,6 +392,72 @@ export default function UserTable({ initialUsers }: Props) {
                 </div>
             )}
 
+            {/* Meeting URL Modal */}
+            {meetingTarget && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/50 p-4">
+                    <div className="bg-white rounded-2xl shadow-2xl w-full max-w-sm overflow-hidden">
+                        <div className="px-6 py-5 border-b border-gray-100">
+                            <div className="flex items-center gap-3">
+                                <div className="w-9 h-9 rounded-full bg-blue-100 flex items-center justify-center shrink-0">
+                                    <span className="text-lg">🔗</span>
+                                </div>
+                                <div>
+                                    <h2 className="text-base font-bold text-gray-900">ลิงก์ประชุมออนไลน์</h2>
+                                    <p className="text-xs text-gray-500 mt-0.5">{meetingTarget.name}</p>
+                                </div>
+                            </div>
+                        </div>
+                        <div className="px-6 py-5 space-y-4">
+                            {meetingError && (
+                                <div className="flex items-start gap-2.5 bg-red-50 border border-red-200 rounded-xl px-4 py-3">
+                                    <span className="text-red-500 shrink-0 mt-0.5">⚠</span>
+                                    <p className="text-sm text-red-700">{meetingError}</p>
+                                </div>
+                            )}
+                            {meetingSuccess && (
+                                <div className="flex items-start gap-2.5 bg-green-50 border border-green-200 rounded-xl px-4 py-3">
+                                    <span className="text-green-500 shrink-0 mt-0.5">✓</span>
+                                    <p className="text-sm text-green-700">บันทึกเรียบร้อยแล้ว</p>
+                                </div>
+                            )}
+                            <div>
+                                <label className="block text-sm font-medium text-gray-700 mb-1.5">
+                                    Google Meet URL
+                                    <span className="ml-1.5 text-xs font-normal text-gray-400">(Personal Meeting Link)</span>
+                                </label>
+                                <input
+                                    type="url"
+                                    className="w-full px-3.5 py-2.5 rounded-lg border border-[--color-border] bg-white text-gray-900 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500 focus:border-brand-500 transition-shadow placeholder-gray-400"
+                                    placeholder="https://meet.google.com/xxx-yyy-zzz"
+                                    value={meetingUrl}
+                                    onChange={(e) => setMeetingUrl(e.target.value)}
+                                    disabled={isPending || meetingSuccess}
+                                    autoFocus
+                                />
+                                <p className="text-xs text-gray-400 mt-1.5">
+                                    ใช้ได้ตลอด — ระบบจะส่งลิงก์นี้ให้นักศึกษาอัตโนมัติก่อนนัด online
+                                </p>
+                            </div>
+                        </div>
+                        <div className="px-6 py-4 bg-gray-50 border-t border-gray-100 flex gap-2.5">
+                            <button
+                                onClick={handleSaveMeetingUrl}
+                                disabled={isPending || meetingSuccess}
+                                className="flex-1 py-2.5 px-4 bg-gradient-to-r from-brand-600 to-brand-500 text-white text-sm font-semibold rounded-lg shadow-sm hover:from-brand-700 hover:to-brand-600 disabled:opacity-50 disabled:cursor-not-allowed transition-all"
+                            >
+                                {isPending ? 'กำลังบันทึก...' : 'บันทึก'}
+                            </button>
+                            <button
+                                onClick={() => { setMeetingTarget(null); setMeetingUrl(''); setMeetingError(null); setMeetingSuccess(false) }}
+                                className="flex-1 py-2.5 px-4 bg-white text-gray-700 text-sm font-medium rounded-lg border border-gray-200 hover:bg-gray-50 transition-colors"
+                            >
+                                ยกเลิก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {/* Table */}
             {filtered.length === 0 ? (
                 <div className="card py-16 text-center text-gray-400">
@@ -402,6 +499,20 @@ export default function UserTable({ initialUsers }: Props) {
                             <p className="text-xs text-gray-400 shrink-0 hidden sm:block">
                                 {new Date(u.created_at).toLocaleDateString('th-TH', { dateStyle: 'short' })}
                             </p>
+                            {/* Meeting URL — advisor/counselor only */}
+                            {u.role !== 'admin' && (
+                                <button
+                                    onClick={() => { setMeetingTarget(u); setMeetingUrl(u.meeting_url ?? ''); setMeetingError(null); setMeetingSuccess(false) }}
+                                    disabled={isPending}
+                                    title={u.meeting_url ?? 'ยังไม่มี Meeting URL'}
+                                    className={`text-xs px-2.5 py-1 rounded-lg border transition-colors disabled:opacity-50 shrink-0 ${u.meeting_url
+                                        ? 'border-blue-200 text-blue-600 hover:bg-blue-50'
+                                        : 'border-gray-200 text-gray-400 hover:bg-gray-50'
+                                    }`}
+                                >
+                                    🔗 Meet
+                                </button>
+                            )}
                             {/* Reset password */}
                             <button
                                 onClick={() => { setResetTarget(u); setResetPassword(''); setResetError(null); setResetSuccess(false) }}

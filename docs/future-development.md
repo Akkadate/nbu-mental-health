@@ -74,86 +74,18 @@ advisory.referrals:
 
 ---
 
-## Small Improvements (ยังไม่ครบ)
-
-### 4. ?next=booking Parameter ใน LIFF Screening
-
-**คืออะไร:**
-เมื่อ Soft Gate ส่งนักศึกษามาประเมินก่อนนัด จะเปิด LIFF ด้วย URL `?next=booking`
-หลังประเมินเสร็จ ควรแสดงปุ่ม "นัดหมาย" เสมอ ไม่ว่าจะได้ risk ระดับไหน
-
-**สถานะปัจจุบัน:**
-- ปุ่ม "นัดหมาย" แสดงเฉพาะ risk moderate/high/crisis เท่านั้น
-- ถ้าได้ LOW risk และมี `?next=booking` จะไม่มีปุ่มนัดหมายให้กด
-
-**ไฟล์ที่ต้องแก้:**
-- `apps/liff/app/screening/_components/ScreeningWizard.tsx`
-- อ่าน `useSearchParams()` หาค่า `next`
-- ถ้า `next === 'booking'` → แสดงปุ่ม "📅 นัดหมาย" เสมอ (ทุก risk level)
-
-**โค้ดที่ต้องแก้ (ประมาณ 10 บรรทัด):**
-```tsx
-// ใน ScreeningWizard.tsx หรือ page.tsx
-import { useSearchParams } from 'next/navigation'
-const searchParams = useSearchParams()
-const nextParam = searchParams.get('next') // 'booking' | null
-
-// ใน result section:
-{(risk !== 'low' || nextParam === 'booking') && (
-    <a href="/booking?type=counselor" className="btn-line">
-        📅 นัดพบนักจิตวิทยา
-    </a>
-)}
-```
-
----
-
-### 5. Intent Field ไม่ถูกเก็บลง DB
-
-**คืออะไร:**
-Field `intent` (เหตุผลที่ประเมิน: academic/stress/relationship/sleep/other/unsure) ถูกรับมาใน API
-แต่ไม่ได้ save ลงตาราง `clinical.screenings`
-
-**ผลกระทบ:**
-- ข้อมูลสูญหาย ใช้วิเคราะห์ย้อนหลังไม่ได้
-- ใช้แค่สร้าง routing suggestion แล้วทิ้ง
-
-**ไฟล์ที่ต้องแก้:**
-- Migration: `ALTER TABLE clinical.screenings ADD COLUMN intent text`
-- `apps/api/src/routes/screenings.ts` — เพิ่ม `intent` ใน INSERT
-- `apps/api/src/routes/clinical.ts` — เพิ่ม `intent` ใน SELECT
-
----
-
-### 6. Dashboard URL Hardcode ใน Worker
-
-**คืออะไร:**
-URL ของ Admin dashboard ถูก hardcode ใน worker เป็น `https://mentalhealth.northbkk.ac.th`
-
-**ไฟล์:**
-- `apps/api/src/worker.ts` (บรรทัดที่สร้าง LINE notification message)
-
-**วิธีแก้:**
-```ts
-// .env
-ADMIN_URL=https://admin.mentalhealth.northbkk.ac.th
-
-// config.ts
-adminUrl: process.env.ADMIN_URL || 'https://admin.mentalhealth.northbkk.ac.th'
-
-// worker.ts
-const dashboardLink = `${config.adminUrl}/counselor/cases/${caseId}`
-```
-
----
-
 ## ลำดับความสำคัญที่แนะนำ
 
 | ลำดับ | Feature | ความยาก | ผลกระทบ |
 |-------|---------|---------|---------|
-| 1 | ?next=booking param | ง่าย (~10 บรรทัด) | UX ดีขึ้น |
-| 2 | Dashboard URL env var | ง่าย (~5 บรรทัด) | Code quality |
-| 3 | Intent field เก็บ DB | กลาง (migration + code) | Analytics |
-| 4 | Referral Tickets | ยาก (full feature) | Workflow ครบ |
-| 5 | Supervisor Dashboard | กลาง (UI เท่านั้น) | Crisis response |
-| 6 | Waitlist / No-show | ยาก | Phase 2 |
+| 1 | Referral Tickets | ยาก (full feature) | Workflow ครบ |
+| 2 | Supervisor Dashboard | กลาง (UI เท่านั้น) | Crisis response |
+| 3 | Waitlist / No-show | ยาก | Phase 2 |
+
+---
+
+## Completed ✅
+
+- **?next=booking param** — ปุ่มนัดหมายแสดงทุก risk level
+- **Intent field → DB** — `clinical.screenings.intent` บันทึกค่า unsure/academic/stress/...
+- **Dashboard URL env var** — `ADMIN_URL` ใน config.ts / worker.ts

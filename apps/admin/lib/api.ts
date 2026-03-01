@@ -371,6 +371,7 @@ export interface StaffUser {
     name: string
     faculty: string | null
     line_user_id: string | null
+    meeting_url: string | null
     is_active: boolean
     created_at: string
 }
@@ -386,7 +387,7 @@ export function createStaffUserApi(data: { email: string; password: string; role
     })
 }
 
-export function updateStaffUserApi(id: string, data: Partial<Pick<StaffUser, 'name' | 'faculty'>>) {
+export function updateStaffUserApi(id: string, data: Partial<Pick<StaffUser, 'name' | 'faculty' | 'meeting_url'>>) {
     return apiFetch<StaffUser>(`/auth/users/${id}`, {
         method: 'PATCH',
         body: JSON.stringify(data),

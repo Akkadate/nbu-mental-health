@@ -101,21 +101,39 @@ async function handleSendLineMessage(payload: any): Promise<void> {
 async function handleReminder(type: string, payload: any): Promise<void> {
     const { appointment_id, line_user_id } = payload;
 
-    // Check appointment still scheduled
+    // Check appointment still scheduled (advisory or clinical)
     let appt = await db('advisory.appointments').where({ id: appointment_id, status: 'scheduled' }).first();
+    let staffTable = 'advisory.advisors';
+    let staffIdField = 'advisor_id';
     if (!appt) {
         appt = await db('clinical.appointments').where({ id: appointment_id, status: 'scheduled' }).first();
+        staffTable = 'clinical.counselors';
+        staffIdField = 'counselor_id';
     }
     if (!appt) return; // Cancelled or completed
+
+    // For online appointments, look up the staff member's Google Meet URL
+    let meetingUrl: string | null = null;
+    if (appt.mode === 'online' && appt[staffIdField]) {
+        const staffMember = await db(staffTable).where({ id: appt[staffIdField] }).first();
+        if (staffMember?.user_id) {
+            const user = await db('public.users').where({ id: staffMember.user_id }).select('meeting_url').first();
+            meetingUrl = user?.meeting_url ?? null;
+        }
+    }
 
     const dt = new Date(appt.scheduled_at);
     const dateStr = dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'short' });
     const timeStr = dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
     const period = type === 'reminder_1d' ? 'พรุ่งนี้' : 'อีก 2 ชั่วโมง';
 
+    const locationLine = appt.mode === 'online'
+        ? `🌐 ออนไลน์${meetingUrl ? `\n🔗 ${meetingUrl}` : ' (รอลิงก์จากผู้ให้คำปรึกษา)'}`
+        : '📍 มาพบตัวที่มหาวิทยาลัย';
+
     await pushMessage(line_user_id, [{
         type: 'text',
-        text: `⏰ เตือนนัดหมาย — ${period}\n\n📆 ${dateStr} เวลา ${timeStr}\n📍 ${appt.mode === 'online' ? 'ออนไลน์' : 'มาพบตัว'}\n\nหากต้องการยกเลิก กรุณาติดต่อล่วงหน้า`,
+        text: `⏰ เตือนนัดหมาย — ${period}\n\n📆 ${dateStr} เวลา ${timeStr}\n${locationLine}\n\nหากต้องการยกเลิก กรุณาติดต่อล่วงหน้า`,
     }]);
 }
 

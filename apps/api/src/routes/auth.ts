@@ -90,7 +90,7 @@ router.get('/users',
         const users = await db('public.users')
             .whereIn('role', ['advisor', 'counselor', 'admin'])
             .orderBy('created_at', 'desc')
-            .select('id', 'role', 'email', 'name', 'faculty', 'line_user_id', 'is_active', 'created_at');
+            .select('id', 'role', 'email', 'name', 'faculty', 'line_user_id', 'meeting_url', 'is_active', 'created_at');
 
         res.json(users);
     }
@@ -159,9 +159,9 @@ router.patch('/users/:id',
         }
 
         const { id } = req.params;
-        const { name, faculty } = req.body as { name?: string; faculty?: string };
+        const { name, faculty, meeting_url } = req.body as { name?: string; faculty?: string; meeting_url?: string | null };
 
-        if (!name && faculty === undefined) {
+        if (!name && faculty === undefined && meeting_url === undefined) {
             res.status(400).json({ error: 'Nothing to update' });
             return;
         }
@@ -169,11 +169,12 @@ router.patch('/users/:id',
         const updates: Record<string, unknown> = {};
         if (name) updates.name = name.trim();
         if (faculty !== undefined) updates.faculty = faculty.trim() || null;
+        if (meeting_url !== undefined) updates.meeting_url = meeting_url?.trim() || null;
 
         const [updated] = await db('public.users')
             .where({ id })
             .update(updates)
-            .returning(['id', 'role', 'email', 'name', 'faculty', 'line_user_id', 'is_active', 'created_at']);
+            .returning(['id', 'role', 'email', 'name', 'faculty', 'line_user_id', 'meeting_url', 'is_active', 'created_at']);
 
         if (!updated) {
             res.status(404).json({ error: 'User not found' });
