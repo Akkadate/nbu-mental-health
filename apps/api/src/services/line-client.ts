@@ -759,7 +759,7 @@ export function buildResourcesMessage(resources: ResourceItem[]): messagingApi.F
                 layout: 'vertical' as const,
                 paddingAll: 'md' as const,
                 contents: [
-                    { type: 'text' as const, text: r.category.toUpperCase(), color: 'rgba(255,255,255,0.7)', size: 'xxs' as const, letterSpacing: '2px' },
+                    { type: 'text' as const, text: r.category, color: '#FFFFFFB2', size: 'xxs' as const },
                     { type: 'text' as const, text: r.title, color: '#FFFFFF', weight: 'bold' as const, size: 'sm' as const, wrap: true, margin: 'xs' as const },
                 ],
             },
