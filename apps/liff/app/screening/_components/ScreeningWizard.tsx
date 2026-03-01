@@ -261,11 +261,9 @@ export default function ScreeningWizard({ nextParam }: ScreeningWizardProps) {
                     <h2 className={`text-lg font-bold ${config.className}`}>{config.label}</h2>
                 </div>
                 <p className="text-sm text-gray-600">{result.routing_suggestion || config.message}</p>
-                {(risk !== 'low' || nextParam === 'booking') && (
-                    <a href="/booking?type=counselor" className="btn-line">
-                        📅 นัดพบนักจิตวิทยา
-                    </a>
-                )}
+                <a href="/booking?type=counselor" className="btn-line">
+                    📅 นัดพบนักจิตวิทยา
+                </a>
             </div>
         )
     }
