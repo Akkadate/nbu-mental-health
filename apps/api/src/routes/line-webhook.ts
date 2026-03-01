@@ -198,7 +198,12 @@ async function handleResources(userId: string, category: string | null): Promise
         return;
     }
 
-    await pushMessage(userId, [buildResourcesMessage(resources)]);
+    await pushMessage(userId, [buildResourcesMessage(resources.map((r: any) => ({
+        title: r.title,
+        category: r.category,
+        description: r.content_markdown ?? null,
+        url: r.url ?? null,
+    })))]);
 }
 
 // ─── My Appointments ───
@@ -322,6 +327,11 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
         return;
     }
 
+    if (['แหล่งช่วยเหลือ', 'แหล่งข้อมูล', 'บทความ', 'ความรู้'].some((k) => normalized.includes(k))) {
+        await handleResources(userId, null);
+        return;
+    }
+
     if (['ฉุกเฉิน', 'ช่วย', 'ไม่ไหว', '1323'].some((k) => normalized.includes(k))) {
         await pushMessage(userId, [buildSafetyPackMessage()]);
         return;
@@ -330,7 +340,7 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
     // Default response
     await pushMessage(userId, [{
         type: 'text',
-        text: '🤖 สวัสดีครับ ใช้เมนูด้านล่างเพื่อเข้าถึงบริการต่างๆ\n\nหรือพิมพ์คำค้นหา:\n• "ประเมิน" — ทำแบบประเมิน\n• "นัดหมาย" — จองนัดหมาย\n• "ดูนัด" — ดูนัดหมายของฉัน\n• "ฉุกเฉิน" — สายด่วน 1323',
+        text: '🤖 สวัสดีครับ ใช้เมนูด้านล่างเพื่อเข้าถึงบริการต่างๆ\n\nหรือพิมพ์คำค้นหา:\n• "ประเมิน" — ทำแบบประเมิน\n• "นัดหมาย" — จองนัดหมาย\n• "ดูนัด" — ดูนัดหมายของฉัน\n• "แหล่งช่วยเหลือ" — บทความและแหล่งข้อมูล\n• "ฉุกเฉิน" — สายด่วน 1323',
     }]);
 }
 
