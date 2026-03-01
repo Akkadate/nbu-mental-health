@@ -56,6 +56,7 @@ router.post('/', async (req: Request, res: Response) => {
         .insert({
             student_id,
             type,
+            intent: intent ?? 'unsure',
             answers_json: JSON.stringify(answers),
             phq9_score: scores.phq9_score,
             gad7_score: scores.gad7_score,

@@ -86,7 +86,11 @@ interface ScreeningResult {
     routing_suggestion: string
 }
 
-export default function ScreeningWizard() {
+interface ScreeningWizardProps {
+    nextParam?: string
+}
+
+export default function ScreeningWizard({ nextParam }: ScreeningWizardProps) {
     const { profile, accessToken } = useLiff()
     const [phase, setPhase] = useState<Phase>('select')
     const [sType, setSType] = useState<SType | null>(null)
@@ -257,7 +261,7 @@ export default function ScreeningWizard() {
                     <h2 className={`text-lg font-bold ${config.className}`}>{config.label}</h2>
                 </div>
                 <p className="text-sm text-gray-600">{result.routing_suggestion || config.message}</p>
-                {risk !== 'low' && (
+                {(risk !== 'low' || nextParam === 'booking') && (
                     <a href="/booking?type=counselor" className="btn-line">
                         📅 นัดพบนักจิตวิทยา
                     </a>

@@ -33,6 +33,7 @@ router.get('/screenings',
                 .select(
                     'clinical.screenings.id',
                     'clinical.screenings.type',
+                    'clinical.screenings.intent',
                     'clinical.screenings.phq9_score',
                     'clinical.screenings.gad7_score',
                     'clinical.screenings.stress_score',

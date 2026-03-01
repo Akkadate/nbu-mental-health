@@ -6,7 +6,10 @@ export const metadata: Metadata = { title: 'แบบประเมิน | NBU
 
 const LIFF_ID = process.env.NEXT_PUBLIC_LIFF_ID_SCREENING ?? ''
 
-export default function ScreeningPage() {
+type SearchParams = Promise<{ next?: string }>
+
+export default async function ScreeningPage({ searchParams }: { searchParams: SearchParams }) {
+    const { next } = await searchParams
     return (
         <LiffProvider liffId={LIFF_ID}>
             <main className="min-h-screen p-4">
@@ -15,7 +18,7 @@ export default function ScreeningPage() {
                     <h1 className="text-xl font-bold text-gray-900">แบบประเมินสุขภาพจิต</h1>
                     <p className="text-sm text-gray-500 mt-1">คำตอบของคุณจะถูกเก็บเป็นความลับ</p>
                 </div>
-                <ScreeningWizard />
+                <ScreeningWizard nextParam={next} />
             </main>
         </LiffProvider>
     )

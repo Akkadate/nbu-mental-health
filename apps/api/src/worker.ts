@@ -1,5 +1,6 @@
 import db from './db.js';
 import { logger } from './logger.js';
+import { config } from './config.js';
 import { pushMessage, buildStaffNotification, buildScreeningResultMessage, buildSafetyPackMessage } from './services/line-client.js';
 
 const POLL_INTERVAL_MS = 5000;
@@ -77,7 +78,7 @@ async function handleSendLineMessage(payload: any): Promise<void> {
     const { line_user_id, message_type, case_id, priority } = payload;
 
     if (message_type === 'staff_notification') {
-        const dashboardUrl = `https://mentalhealth.northbkk.ac.th/clinical/cases/${case_id}`;
+        const dashboardUrl = `${config.ADMIN_URL}/counselor/cases/${case_id}`;
         await pushMessage(line_user_id, [
             buildStaffNotification(case_id, priority, dashboardUrl),
         ]);
@@ -134,7 +135,7 @@ async function handleEscalationCheck(payload: any): Promise<void> {
         .select('line_user_id');
 
     for (const sup of supervisors) {
-        const dashboardUrl = `https://mentalhealth.northbkk.ac.th/clinical/cases/${case_id}`;
+        const dashboardUrl = `${config.ADMIN_URL}/counselor/cases/${case_id}`;
         if (sup.line_user_id) {
             await pushMessage(sup.line_user_id, [{
                 type: 'flex',

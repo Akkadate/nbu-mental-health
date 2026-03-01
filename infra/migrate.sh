@@ -62,7 +62,9 @@ for sql_file in \
     "$SQL_DIR/070_updated_at_trigger.sql" \
     "$SQL_DIR/080_add_verify_columns.sql" \
     "$SQL_DIR/090_staff_line_user_id.sql" \
-    "$SQL_DIR/091_add_name_faculty_to_users.sql"
+    "$SQL_DIR/091_add_name_faculty_to_users.sql" \
+    "$SQL_DIR/092_students_plain_fields.sql" \
+    "$SQL_DIR/093_add_intent_to_screenings.sql"
 do
     run_migration "$sql_file"
 done

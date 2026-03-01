@@ -44,6 +44,7 @@ const envSchema = z.object({
     // Server
     PORT: z.coerce.number().default(3000),
     NODE_ENV: z.enum(['development', 'production', 'test']).default('development'),
+    ADMIN_URL: z.string().default('https://admin.mentalhealth.northbkk.ac.th'),
 });
 
 export type Env = z.infer<typeof envSchema>;
