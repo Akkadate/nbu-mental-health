@@ -18,6 +18,23 @@ import type { LineEvent } from '@nbu/shared';
 const router = Router();
 
 /**
+ * Cross-request deduplication for LINE postback displayText echoes.
+ * When a rich menu postback button has `displayText`, LINE sends TWO webhook events
+ * (possibly in separate HTTP requests): a postback event and a text message echo.
+ * We record the postback timestamp per userId, and in handleTextMessage we skip
+ * processing if a postback was seen for this user within the last 5 seconds.
+ */
+const recentPostbacks = new Map<string, number>(); // userId → Date.now()
+
+// Clean up stale entries every 30 seconds
+setInterval(() => {
+    const cutoff = Date.now() - 10_000;
+    for (const [uid, ts] of recentPostbacks) {
+        if (ts < cutoff) recentPostbacks.delete(uid);
+    }
+}, 30_000);
+
+/**
  * POST /webhooks/line
  * Main LINE webhook endpoint — receives all events from LINE platform
  */
@@ -27,19 +44,17 @@ router.post('/', verifyLineSignature, async (req: Request, res: Response) => {
     // Return 200 immediately (LINE expects fast response)
     res.status(200).json({ ok: true });
 
-    // Process events asynchronously.
-    // Track users who fired a postback in this batch so we can skip their displayText echo.
-    const seenPostbackUsers = new Set<string>();
+    // Process events asynchronously
     for (const event of events) {
         try {
-            await handleEvent(event, seenPostbackUsers);
+            await handleEvent(event);
         } catch (err) {
             logger.error({ err, event }, 'Error handling LINE event');
         }
     }
 });
 
-async function handleEvent(event: LineEvent, seenPostbackUsers?: Set<string>): Promise<void> {
+async function handleEvent(event: LineEvent): Promise<void> {
     const userId = event.source.userId;
     if (!userId) return;
 
@@ -50,18 +65,18 @@ async function handleEvent(event: LineEvent, seenPostbackUsers?: Set<string>): P
 
         case 'postback':
             if (event.postback?.data) {
-                // Mark this user so we can skip their displayText echo later in this batch
-                seenPostbackUsers?.add(userId);
+                recentPostbacks.set(userId, Date.now());
                 await handlePostback(userId, event.postback.data, event.replyToken);
             }
             break;
 
         case 'message':
             if (event.message?.type === 'text' && event.message.text) {
-                // If user already had a postback in this batch, this text is a displayText echo
-                if (seenPostbackUsers?.has(userId)) {
-                    seenPostbackUsers.delete(userId);
-                    logger.debug({ userId }, 'Skipping displayText echo for postback user');
+                // Skip displayText echo: if this user had a postback within the last 5 seconds
+                const postbackTs = recentPostbacks.get(userId);
+                if (postbackTs && Date.now() - postbackTs < 5_000) {
+                    recentPostbacks.delete(userId);
+                    logger.debug({ userId }, 'Skipping displayText echo from postback');
                     return;
                 }
                 await handleTextMessage(userId, event.message.text, event.replyToken);
