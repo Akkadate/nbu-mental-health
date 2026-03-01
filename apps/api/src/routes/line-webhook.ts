@@ -9,6 +9,11 @@ import {
     buildSoftGateMessage,
     buildScreeningResultMessage,
     buildSafetyPackMessage,
+    buildBookingReadyMessage,
+    buildScreeningInviteMessage,
+    buildNoAppointmentsMessage,
+    buildAppointmentListMessage,
+    buildResourcesMessage,
     assignGuestMenu,
     assignVerifiedMenu,
 } from '../services/line-client.js';
@@ -169,11 +174,8 @@ async function handleBookingGate(userId: string): Promise<void> {
         .first();
 
     if (recentScreening) {
-        // Has recent screening → go directly to booking LIFF
-        await pushMessage(userId, [{
-            type: 'text',
-            text: `📅 เปิดระบบนัดหมาย\nhttps://liff.line.me/${config.LIFF_BOOKING_ID}`,
-        }]);
+        // Has recent screening → show booking card with advisor/counselor options
+        await pushMessage(userId, [buildBookingReadyMessage()]);
     } else {
         // No recent screening → show Soft Gate
         await pushMessage(userId, [buildSoftGateMessage()]);
@@ -196,33 +198,7 @@ async function handleResources(userId: string, category: string | null): Promise
         return;
     }
 
-    // Build Flex Carousel
-    const bubbles = resources.map((r: any) => ({
-        type: 'bubble' as const,
-        body: {
-            type: 'box' as const,
-            layout: 'vertical' as const,
-            contents: [
-                { type: 'text' as const, text: r.title, weight: 'bold' as const, size: 'md' as const, wrap: true },
-                { type: 'text' as const, text: r.category, size: 'xs' as const, color: '#999999', margin: 'sm' as const },
-            ],
-        },
-        footer: r.url ? {
-            type: 'box' as const,
-            layout: 'vertical' as const,
-            contents: [{
-                type: 'button' as const,
-                action: { type: 'uri' as const, label: 'อ่านเพิ่มเติม', uri: r.url },
-                style: 'link' as const,
-            }],
-        } : undefined,
-    }));
-
-    await pushMessage(userId, [{
-        type: 'flex',
-        altText: '📚 แหล่งช่วยเหลือตนเอง',
-        contents: { type: 'carousel', contents: bubbles },
-    }]);
+    await pushMessage(userId, [buildResourcesMessage(resources)]);
 }
 
 // ─── My Appointments ───
@@ -252,25 +228,11 @@ async function handleMyAppointments(userId: string): Promise<void> {
     ].sort((a, b) => new Date(a.scheduled_at).getTime() - new Date(b.scheduled_at).getTime());
 
     if (allAppts.length === 0) {
-        await pushMessage(userId, [{
-            type: 'text',
-            text: '📅 คุณยังไม่มีนัดหมายที่กำลังจะมาถึง\nกดปุ่ม "นัดหมาย" เพื่อจองเวลา',
-        }]);
+        await pushMessage(userId, [buildNoAppointmentsMessage()]);
         return;
     }
 
-    const lines = allAppts.map((a: any) => {
-        const dt = new Date(a.scheduled_at);
-        const dateStr = dt.toLocaleDateString('th-TH', { day: 'numeric', month: 'short', year: 'numeric' });
-        const timeStr = dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit' });
-        const typeLabel = a.type === 'advisor' ? 'อาจารย์ที่ปรึกษา' : 'นักจิตวิทยา';
-        return `📆 ${dateStr} ${timeStr}\n   ${typeLabel} (${a.mode})`;
-    });
-
-    await pushMessage(userId, [{
-        type: 'text',
-        text: `📅 นัดหมายของคุณ\n\n${lines.join('\n\n')}`,
-    }]);
+    await pushMessage(userId, [buildAppointmentListMessage(allAppts)]);
 }
 
 // ─── Cancel Appointment ───
@@ -346,10 +308,7 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
     }
 
     if (['ประเมิน', 'เครียด', 'แบบทดสอบ'].some((k) => normalized.includes(k))) {
-        await pushMessage(userId, [{
-            type: 'text',
-            text: `🧠 เริ่มทำแบบประเมินได้เลย\n\nhttps://liff.line.me/${config.LIFF_SCREENING_ID}`,
-        }]);
+        await pushMessage(userId, [buildScreeningInviteMessage()]);
         return;
     }
 

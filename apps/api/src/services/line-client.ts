@@ -415,4 +415,384 @@ export function buildStaffNotification(
     };
 }
 
+// ─── Typed helpers for dynamic builders ───
+
+export interface AppointmentCardItem {
+    id: string;
+    scheduled_at: string | Date;
+    mode: string;
+    type: 'advisor' | 'counselor';
+}
+
+export interface ResourceItem {
+    title: string;
+    category: string;
+    description?: string | null;
+    url?: string | null;
+}
+
+// ─── Booking Ready Message ───
+// Shown when student has a recent screening and taps "นัดหมาย"
+
+export function buildBookingReadyMessage(): messagingApi.FlexMessage {
+    return {
+        type: 'flex',
+        altText: '📅 เลือกประเภทการนัดหมาย',
+        contents: {
+            type: 'bubble',
+            styles: { header: { backgroundColor: '#1565C0' } },
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                contents: [
+                    { type: 'text', text: '📅 ระบบนัดหมาย', color: '#FFFFFF', weight: 'bold', size: 'xl' },
+                    { type: 'text', text: 'เลือกผู้เชี่ยวชาญที่ต้องการนัดพบ', color: '#BBDEFB', size: 'sm', margin: 'xs' },
+                ],
+            },
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'md',
+                paddingAll: 'lg',
+                contents: [
+                    {
+                        type: 'box',
+                        layout: 'horizontal',
+                        spacing: 'md',
+                        contents: [
+                            { type: 'text', text: '👔', size: 'xxl', flex: 0, gravity: 'center' },
+                            {
+                                type: 'box', layout: 'vertical', flex: 1, justifyContent: 'center',
+                                contents: [
+                                    { type: 'text', text: 'อาจารย์ที่ปรึกษา', weight: 'bold', size: 'sm' },
+                                    { type: 'text', text: 'ปรึกษาด้านการเรียนและชีวิตทั่วไป', size: 'xs', color: '#888888', wrap: true },
+                                ],
+                            },
+                        ],
+                    },
+                    { type: 'separator' },
+                    {
+                        type: 'box',
+                        layout: 'horizontal',
+                        spacing: 'md',
+                        contents: [
+                            { type: 'text', text: '🩺', size: 'xxl', flex: 0, gravity: 'center' },
+                            {
+                                type: 'box', layout: 'vertical', flex: 1, justifyContent: 'center',
+                                contents: [
+                                    { type: 'text', text: 'นักจิตวิทยา', weight: 'bold', size: 'sm' },
+                                    { type: 'text', text: 'ปรึกษาด้านสุขภาพจิตและอารมณ์', size: 'xs', color: '#888888', wrap: true },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'sm',
+                paddingAll: 'lg',
+                contents: [
+                    {
+                        type: 'button',
+                        action: {
+                            type: 'uri',
+                            label: '👔 นัดอาจารย์ที่ปรึกษา',
+                            uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}?type=advisor`,
+                        },
+                        style: 'secondary',
+                        height: 'sm',
+                    },
+                    {
+                        type: 'button',
+                        action: {
+                            type: 'uri',
+                            label: '🩺 นัดนักจิตวิทยา',
+                            uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}?type=counselor`,
+                        },
+                        style: 'primary',
+                        color: '#1565C0',
+                        height: 'sm',
+                    },
+                ],
+            },
+        },
+    };
+}
+
+// ─── Screening Invite Message ───
+// Shown when user types "ประเมิน" or similar keywords
+
+export function buildScreeningInviteMessage(): messagingApi.FlexMessage {
+    return {
+        type: 'flex',
+        altText: '🧠 ทำแบบประเมินสุขภาพจิต',
+        contents: {
+            type: 'bubble',
+            styles: { header: { backgroundColor: '#2E7D32' } },
+            header: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                contents: [
+                    { type: 'text', text: '🧠 ประเมินสุขภาพจิต', color: '#FFFFFF', weight: 'bold', size: 'xl' },
+                    { type: 'text', text: 'เข้าใจตัวเองและรับคำแนะนำที่เหมาะสม', color: '#C8E6C9', size: 'sm', margin: 'xs' },
+                ],
+            },
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'md',
+                paddingAll: 'lg',
+                contents: [
+                    { type: 'text', text: 'เลือกประเภทแบบประเมิน', weight: 'bold', size: 'sm', color: '#333333' },
+                    {
+                        type: 'box',
+                        layout: 'horizontal',
+                        spacing: 'md',
+                        margin: 'sm',
+                        contents: [
+                            { type: 'text', text: '⚡', size: 'xl', flex: 0, gravity: 'center' },
+                            {
+                                type: 'box', layout: 'vertical', flex: 1,
+                                contents: [
+                                    { type: 'text', text: 'ประเมินด่วน', weight: 'bold', size: 'sm' },
+                                    { type: 'text', text: '3–5 คำถาม  •  ใช้เวลา ~2 นาที', size: 'xs', color: '#888888' },
+                                ],
+                            },
+                        ],
+                    },
+                    { type: 'separator' },
+                    {
+                        type: 'box',
+                        layout: 'horizontal',
+                        spacing: 'md',
+                        contents: [
+                            { type: 'text', text: '📋', size: 'xl', flex: 0, gravity: 'center' },
+                            {
+                                type: 'box', layout: 'vertical', flex: 1,
+                                contents: [
+                                    { type: 'text', text: 'ประเมินเต็ม (PHQ-9 / GAD-7)', weight: 'bold', size: 'sm' },
+                                    { type: 'text', text: 'ครอบคลุมกว่า  •  ใช้เวลา ~5 นาที', size: 'xs', color: '#888888' },
+                                ],
+                            },
+                        ],
+                    },
+                ],
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                contents: [
+                    {
+                        type: 'button',
+                        action: {
+                            type: 'uri',
+                            label: '🚀 เริ่มทำแบบประเมิน',
+                            uri: `https://liff.line.me/${config.LIFF_SCREENING_ID}`,
+                        },
+                        style: 'primary',
+                        color: '#2E7D32',
+                    },
+                ],
+            },
+        },
+    };
+}
+
+// ─── No Appointments Message ───
+// Shown when student has no upcoming appointments
+
+export function buildNoAppointmentsMessage(): messagingApi.FlexMessage {
+    return {
+        type: 'flex',
+        altText: '📅 ยังไม่มีนัดหมายที่กำลังจะมาถึง',
+        contents: {
+            type: 'bubble',
+            body: {
+                type: 'box',
+                layout: 'vertical',
+                spacing: 'md',
+                paddingAll: 'xl',
+                contents: [
+                    { type: 'text', text: '📅', size: 'xxl', align: 'center' },
+                    { type: 'text', text: 'ยังไม่มีนัดหมาย', weight: 'bold', size: 'lg', align: 'center', margin: 'md' },
+                    {
+                        type: 'text',
+                        text: 'คุณยังไม่มีนัดหมายที่กำลังจะมาถึง\nกดปุ่มด้านล่างเพื่อจองนัดได้เลย',
+                        size: 'sm', color: '#888888', align: 'center', wrap: true, margin: 'sm',
+                    },
+                ],
+            },
+            footer: {
+                type: 'box',
+                layout: 'vertical',
+                paddingAll: 'lg',
+                contents: [
+                    {
+                        type: 'button',
+                        action: { type: 'postback', label: '📅 จองนัดหมายใหม่', data: 'action=booking_gate' },
+                        style: 'primary',
+                        color: '#1565C0',
+                    },
+                ],
+            },
+        },
+    };
+}
+
+// ─── Appointment List Message ───
+// Carousel of upcoming appointment cards with cancel button
+
+export function buildAppointmentListMessage(appts: AppointmentCardItem[]): messagingApi.FlexMessage {
+    const bubbles = appts.map((a) => {
+        const dt = new Date(a.scheduled_at);
+        const dateStr = dt.toLocaleDateString('th-TH', {
+            weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok',
+        });
+        const timeStr = dt.toLocaleTimeString('th-TH', {
+            hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok',
+        });
+        const isAdvisor = a.type === 'advisor';
+        const typeLabel = isAdvisor ? 'อาจารย์ที่ปรึกษา' : 'นักจิตวิทยา';
+        const typeIcon = isAdvisor ? '👔' : '🩺';
+        const modeLabel = a.mode === 'online' ? '🌐 ออนไลน์' : '📍 มาพบตัว';
+        const headerColor = isAdvisor ? '#37474F' : '#1565C0';
+
+        return {
+            type: 'bubble' as const,
+            styles: { header: { backgroundColor: headerColor } },
+            header: {
+                type: 'box' as const,
+                layout: 'vertical' as const,
+                paddingAll: 'md' as const,
+                contents: [
+                    { type: 'text' as const, text: `${typeIcon} ${typeLabel}`, color: '#FFFFFF', weight: 'bold' as const, size: 'sm' as const },
+                ],
+            },
+            body: {
+                type: 'box' as const,
+                layout: 'vertical' as const,
+                spacing: 'sm' as const,
+                paddingAll: 'lg' as const,
+                contents: [
+                    {
+                        type: 'box' as const, layout: 'horizontal' as const, spacing: 'sm' as const,
+                        contents: [
+                            { type: 'text' as const, text: '📆', size: 'sm' as const, flex: 0 },
+                            { type: 'text' as const, text: dateStr, size: 'sm' as const, flex: 1, wrap: true },
+                        ],
+                    },
+                    {
+                        type: 'box' as const, layout: 'horizontal' as const, spacing: 'sm' as const,
+                        contents: [
+                            { type: 'text' as const, text: '⏰', size: 'sm' as const, flex: 0 },
+                            { type: 'text' as const, text: timeStr, size: 'sm' as const, flex: 1, weight: 'bold' as const },
+                        ],
+                    },
+                    {
+                        type: 'box' as const, layout: 'horizontal' as const, spacing: 'sm' as const, margin: 'sm' as const,
+                        contents: [
+                            { type: 'text' as const, text: modeLabel, size: 'xs' as const, color: '#888888', flex: 1 },
+                        ],
+                    },
+                ],
+            },
+            footer: {
+                type: 'box' as const,
+                layout: 'vertical' as const,
+                paddingAll: 'md' as const,
+                contents: [
+                    {
+                        type: 'button' as const,
+                        action: {
+                            type: 'postback' as const,
+                            label: '❌ ยกเลิกนัดหมาย',
+                            data: `action=cancel_appt&appt_id=${a.id}&appt_type=${a.type}`,
+                        },
+                        style: 'link' as const,
+                        color: '#E53935',
+                        height: 'sm' as const,
+                    },
+                ],
+            },
+        };
+    });
+
+    return {
+        type: 'flex',
+        altText: `📅 นัดหมายของคุณ (${appts.length} รายการ)`,
+        contents: { type: 'carousel', contents: bubbles },
+    };
+}
+
+// ─── Resources Carousel Message ───
+// Category-colored card carousel for self-help resources
+
+export function buildResourcesMessage(resources: ResourceItem[]): messagingApi.FlexMessage {
+    const categoryColor: Record<string, string> = {
+        'สุขภาพจิต': '#2E7D32',
+        'การเรียน': '#1565C0',
+        'ความเครียด': '#E65100',
+        'ความสัมพันธ์': '#AD1457',
+        'ฉุกเฉิน': '#B71C1C',
+        'ทั่วไป': '#37474F',
+    };
+
+    const bubbles = resources.map((r) => {
+        const color = categoryColor[r.category] ?? '#455A64';
+        const bodyContents: any[] = [
+            { type: 'text', text: r.title, weight: 'bold', size: 'sm', wrap: true },
+        ];
+        if (r.description) {
+            bodyContents.push({ type: 'text', text: r.description, size: 'xs', color: '#666666', wrap: true, margin: 'sm' });
+        }
+
+        return {
+            type: 'bubble' as const,
+            styles: { header: { backgroundColor: color } },
+            header: {
+                type: 'box' as const,
+                layout: 'vertical' as const,
+                paddingAll: 'md' as const,
+                contents: [
+                    { type: 'text' as const, text: r.category.toUpperCase(), color: 'rgba(255,255,255,0.7)', size: 'xxs' as const, letterSpacing: '2px' },
+                    { type: 'text' as const, text: r.title, color: '#FFFFFF', weight: 'bold' as const, size: 'sm' as const, wrap: true, margin: 'xs' as const },
+                ],
+            },
+            body: r.description ? {
+                type: 'box' as const,
+                layout: 'vertical' as const,
+                paddingAll: 'lg' as const,
+                contents: [
+                    { type: 'text' as const, text: r.description, size: 'xs' as const, color: '#666666', wrap: true },
+                ],
+            } : undefined,
+            footer: r.url ? {
+                type: 'box' as const,
+                layout: 'vertical' as const,
+                paddingAll: 'md' as const,
+                contents: [
+                    {
+                        type: 'button' as const,
+                        action: { type: 'uri' as const, label: '📖 อ่านเพิ่มเติม', uri: r.url },
+                        style: 'primary' as const,
+                        color,
+                        height: 'sm' as const,
+                    },
+                ],
+            } : undefined,
+        };
+    });
+
+    return {
+        type: 'flex',
+        altText: '📚 แหล่งช่วยเหลือตนเอง',
+        contents: { type: 'carousel', contents: bubbles },
+    };
+}
+
 export { client as lineClient };
