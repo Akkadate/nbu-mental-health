@@ -141,46 +141,21 @@ export function buildSoftGateMessage(): messagingApi.FlexMessage {
             body: {
                 type: 'box',
                 layout: 'vertical',
-                contents: [
-                    {
-                        type: 'text',
-                        text: '📋 แนะนำสำหรับคุณ',
-                        weight: 'bold',
-                        size: 'lg',
-                    },
-                    {
-                        type: 'text',
-                        text: 'การประเมินตนเองก่อนนัดหมาย จะช่วยให้ผู้เชี่ยวชาญเตรียมตัวดูแลคุณได้ดียิ่งขึ้น\n\n⏱ ใช้เวลาเพียง 3-5 นาที',
-                        wrap: true,
-                        margin: 'md',
-                        size: 'sm',
-                        color: '#666666',
-                    },
-                ],
-            },
-            footer: {
-                type: 'box',
-                layout: 'vertical',
+                paddingAll: 'lg',
                 spacing: 'sm',
                 contents: [
+                    { type: 'text', text: '📋 แนะนำสำหรับคุณ', weight: 'bold', size: 'md' },
+                    { type: 'text', text: '⏱ ใช้เวลาเพียง 3-5 นาที ช่วยให้ผู้เชี่ยวชาญดูแลคุณได้ดียิ่งขึ้น', wrap: true, size: 'sm', color: '#666666', margin: 'xs' },
+                    { type: 'separator', margin: 'md' },
                     {
                         type: 'button',
-                        action: {
-                            type: 'uri',
-                            label: '🧠 ประเมินก่อนนัด (แนะนำ)',
-                            uri: `https://liff.line.me/${config.LIFF_SCREENING_ID}?next=booking`,
-                        },
-                        style: 'primary',
-                        color: '#6BA882',
+                        action: { type: 'uri', label: '🧠 ประเมินก่อนนัด (แนะนำ)', uri: `https://liff.line.me/${config.LIFF_SCREENING_ID}?next=booking` },
+                        style: 'primary', color: '#6BA882', margin: 'md', height: 'sm',
                     },
                     {
                         type: 'button',
-                        action: {
-                            type: 'uri',
-                            label: '📅 ข้ามไปนัดหมายเลย',
-                            uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}`,
-                        },
-                        style: 'link',
+                        action: { type: 'uri', label: '📅 ข้ามไปนัดหมายเลย', uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}` },
+                        style: 'link', height: 'sm',
                     },
                 ],
             },
@@ -286,62 +261,26 @@ export function buildSafetyPackMessage(): messagingApi.FlexMessage {
         altText: 'ข้อมูลช่วยเหลือฉุกเฉิน — สายด่วนสุขภาพจิต 1323',
         contents: {
             type: 'bubble',
-            styles: {
-                body: { backgroundColor: '#FFF3E0' },
-            },
+            styles: { body: { backgroundColor: '#FFF3E0' } },
             body: {
                 type: 'box',
                 layout: 'vertical',
-                contents: [
-                    {
-                        type: 'text',
-                        text: '❤️ เราห่วงใยคุณ',
-                        weight: 'bold',
-                        size: 'xl',
-                    },
-                    {
-                        type: 'text',
-                        text: 'คุณไม่ได้อยู่คนเดียว มีคนพร้อมช่วยเหลือเสมอ',
-                        wrap: true,
-                        margin: 'md',
-                        size: 'sm',
-                    },
-                    {
-                        type: 'separator',
-                        margin: 'lg',
-                    },
-                    {
-                        type: 'text',
-                        text: '📞 สายด่วนสุขภาพจิต: 1323 (24 ชม.)\n📞 สายด่วนฉุกเฉิน: 191\n🏥 ห้องพยาบาล มนบ.: 02-972-7200',
-                        wrap: true,
-                        margin: 'lg',
-                        size: 'sm',
-                    },
-                ],
-            },
-            footer: {
-                type: 'box',
-                layout: 'vertical',
                 spacing: 'sm',
+                paddingAll: 'lg',
                 contents: [
+                    { type: 'text', text: '❤️ เราห่วงใยคุณ', weight: 'bold', size: 'md' },
+                    { type: 'text', text: 'คุณไม่ได้อยู่คนเดียว มีคนพร้อมช่วยเหลือเสมอ', wrap: true, size: 'sm', margin: 'xs' },
+                    { type: 'separator', margin: 'md' },
+                    { type: 'text', text: '📞 1323 (24 ชม.)  •  191 (ฉุกเฉิน)  •  มนบ. 02-972-7200', wrap: true, size: 'xs', color: '#666666', margin: 'md' },
                     {
                         type: 'button',
-                        action: {
-                            type: 'uri',
-                            label: '📞 โทร 1323 ทันที',
-                            uri: 'tel:1323',
-                        },
-                        style: 'primary',
-                        color: '#C47878',
+                        action: { type: 'uri', label: '📞 โทร 1323 ทันที', uri: 'tel:1323' },
+                        style: 'primary', color: '#C47878', margin: 'md', height: 'sm',
                     },
                     {
                         type: 'button',
-                        action: {
-                            type: 'uri',
-                            label: '📅 นัดพบนักจิตวิทยา',
-                            uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}`,
-                        },
-                        style: 'secondary',
+                        action: { type: 'uri', label: '📅 นัดพบนักจิตวิทยา', uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}` },
+                        style: 'secondary', height: 'sm',
                     },
                 ],
             },
@@ -440,56 +379,17 @@ export function buildBookingReadyMessage(): messagingApi.FlexMessage {
         altText: '📅 เลือกประเภทการนัดหมาย',
         contents: {
             type: 'bubble',
-            styles: { header: { backgroundColor: '#6699BB' }, body: { backgroundColor: '#EEF4FA' } },
+            styles: { header: { backgroundColor: '#6699BB' } },
             header: {
                 type: 'box',
                 layout: 'vertical',
-                paddingAll: 'lg',
+                paddingAll: 'md',
                 contents: [
-                    { type: 'text', text: '📅 ระบบนัดหมาย', color: '#FFFFFF', weight: 'bold', size: 'xl' },
-                    { type: 'text', text: 'เลือกผู้เชี่ยวชาญที่ต้องการนัดพบ', color: '#E8F2FA', size: 'sm', margin: 'xs' },
+                    { type: 'text', text: '📅 ระบบนัดหมาย', color: '#FFFFFF', weight: 'bold', size: 'lg' },
+                    { type: 'text', text: 'เลือกผู้เชี่ยวชาญที่ต้องการนัดพบ', color: '#E8F2FA', size: 'xs', margin: 'xs' },
                 ],
             },
             body: {
-                type: 'box',
-                layout: 'vertical',
-                spacing: 'md',
-                paddingAll: 'lg',
-                contents: [
-                    {
-                        type: 'box',
-                        layout: 'horizontal',
-                        spacing: 'md',
-                        contents: [
-                            { type: 'text', text: '👔', size: 'xxl', flex: 0, gravity: 'center' },
-                            {
-                                type: 'box', layout: 'vertical', flex: 1, justifyContent: 'center',
-                                contents: [
-                                    { type: 'text', text: 'อาจารย์ที่ปรึกษา', weight: 'bold', size: 'sm' },
-                                    { type: 'text', text: 'ปรึกษาด้านการเรียนและชีวิตทั่วไป', size: 'xs', color: '#888888', wrap: true },
-                                ],
-                            },
-                        ],
-                    },
-                    { type: 'separator' },
-                    {
-                        type: 'box',
-                        layout: 'horizontal',
-                        spacing: 'md',
-                        contents: [
-                            { type: 'text', text: '🩺', size: 'xxl', flex: 0, gravity: 'center' },
-                            {
-                                type: 'box', layout: 'vertical', flex: 1, justifyContent: 'center',
-                                contents: [
-                                    { type: 'text', text: 'นักจิตวิทยา', weight: 'bold', size: 'sm' },
-                                    { type: 'text', text: 'ปรึกษาด้านสุขภาพจิตและอารมณ์', size: 'xs', color: '#888888', wrap: true },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            },
-            footer: {
                 type: 'box',
                 layout: 'vertical',
                 spacing: 'sm',
@@ -497,21 +397,13 @@ export function buildBookingReadyMessage(): messagingApi.FlexMessage {
                 contents: [
                     {
                         type: 'button',
-                        action: {
-                            type: 'uri',
-                            label: '👔 นัดอาจารย์ที่ปรึกษา',
-                            uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}?type=advisor`,
-                        },
+                        action: { type: 'uri', label: '👔 นัดอาจารย์ที่ปรึกษา', uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}?type=advisor` },
                         style: 'secondary',
                         height: 'sm',
                     },
                     {
                         type: 'button',
-                        action: {
-                            type: 'uri',
-                            label: '🩺 นัดนักจิตวิทยา',
-                            uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}?type=counselor`,
-                        },
+                        action: { type: 'uri', label: '🩺 นัดนักจิตวิทยา', uri: `https://liff.line.me/${config.LIFF_BOOKING_ID}?type=counselor` },
                         style: 'primary',
                         color: '#6699BB',
                         height: 'sm',
@@ -531,71 +423,30 @@ export function buildScreeningInviteMessage(): messagingApi.FlexMessage {
         altText: '🧠 ทำแบบประเมินสุขภาพจิต',
         contents: {
             type: 'bubble',
-            styles: { header: { backgroundColor: '#6BA882' }, body: { backgroundColor: '#EEF7F1' } },
+            styles: { header: { backgroundColor: '#6BA882' } },
             header: {
                 type: 'box',
                 layout: 'vertical',
-                paddingAll: 'lg',
+                paddingAll: 'md',
                 contents: [
-                    { type: 'text', text: '🧠 ประเมินสุขภาพจิต', color: '#FFFFFF', weight: 'bold', size: 'xl' },
-                    { type: 'text', text: 'เข้าใจตัวเองและรับคำแนะนำที่เหมาะสม', color: '#E2F5E8', size: 'sm', margin: 'xs' },
+                    { type: 'text', text: '🧠 ประเมินสุขภาพจิต', color: '#FFFFFF', weight: 'bold', size: 'lg' },
+                    { type: 'text', text: 'เข้าใจตัวเองและรับคำแนะนำที่เหมาะสม', color: '#E2F5E8', size: 'xs', margin: 'xs' },
                 ],
             },
             body: {
                 type: 'box',
                 layout: 'vertical',
-                spacing: 'md',
+                spacing: 'sm',
                 paddingAll: 'lg',
                 contents: [
-                    { type: 'text', text: 'เลือกประเภทแบบประเมิน', weight: 'bold', size: 'sm', color: '#333333' },
-                    {
-                        type: 'box',
-                        layout: 'horizontal',
-                        spacing: 'md',
-                        margin: 'sm',
-                        contents: [
-                            { type: 'text', text: '⚡', size: 'xl', flex: 0, gravity: 'center' },
-                            {
-                                type: 'box', layout: 'vertical', flex: 1,
-                                contents: [
-                                    { type: 'text', text: 'ประเมินด่วน', weight: 'bold', size: 'sm' },
-                                    { type: 'text', text: '3–5 คำถาม  •  ใช้เวลา ~2 นาที', size: 'xs', color: '#888888' },
-                                ],
-                            },
-                        ],
-                    },
-                    { type: 'separator' },
-                    {
-                        type: 'box',
-                        layout: 'horizontal',
-                        spacing: 'md',
-                        contents: [
-                            { type: 'text', text: '📋', size: 'xl', flex: 0, gravity: 'center' },
-                            {
-                                type: 'box', layout: 'vertical', flex: 1,
-                                contents: [
-                                    { type: 'text', text: 'ประเมินเต็ม (PHQ-9 / GAD-7)', weight: 'bold', size: 'sm' },
-                                    { type: 'text', text: 'ครอบคลุมกว่า  •  ใช้เวลา ~5 นาที', size: 'xs', color: '#888888' },
-                                ],
-                            },
-                        ],
-                    },
-                ],
-            },
-            footer: {
-                type: 'box',
-                layout: 'vertical',
-                paddingAll: 'lg',
-                contents: [
+                    { type: 'text', text: '⚡ ประเมินด่วน (3–5 คำถาม ~2 นาที)  หรือ  📋 ประเมินเต็ม PHQ-9/GAD-7 (~5 นาที)', wrap: true, size: 'xs', color: '#666666' },
                     {
                         type: 'button',
-                        action: {
-                            type: 'uri',
-                            label: '🚀 เริ่มทำแบบประเมิน',
-                            uri: `https://liff.line.me/${config.LIFF_SCREENING_ID}`,
-                        },
+                        action: { type: 'uri', label: '🚀 เริ่มทำแบบประเมิน', uri: `https://liff.line.me/${config.LIFF_SCREENING_ID}` },
                         style: 'primary',
                         color: '#6BA882',
+                        margin: 'md',
+                        height: 'sm',
                     },
                 ],
             },
@@ -615,28 +466,18 @@ export function buildNoAppointmentsMessage(): messagingApi.FlexMessage {
             body: {
                 type: 'box',
                 layout: 'vertical',
-                spacing: 'md',
-                paddingAll: 'xl',
-                contents: [
-                    { type: 'text', text: '📅', size: 'xxl', align: 'center' },
-                    { type: 'text', text: 'ยังไม่มีนัดหมาย', weight: 'bold', size: 'lg', align: 'center', margin: 'md' },
-                    {
-                        type: 'text',
-                        text: 'คุณยังไม่มีนัดหมายที่กำลังจะมาถึง\nกดปุ่มด้านล่างเพื่อจองนัดได้เลย',
-                        size: 'sm', color: '#888888', align: 'center', wrap: true, margin: 'sm',
-                    },
-                ],
-            },
-            footer: {
-                type: 'box',
-                layout: 'vertical',
+                spacing: 'sm',
                 paddingAll: 'lg',
                 contents: [
+                    { type: 'text', text: '📅 ยังไม่มีนัดหมาย', weight: 'bold', size: 'md' },
+                    { type: 'text', text: 'ยังไม่มีนัดหมายที่กำลังจะมาถึง', size: 'sm', color: '#888888', margin: 'xs' },
                     {
                         type: 'button',
                         action: { type: 'postback', label: '📅 จองนัดหมายใหม่', data: 'action=booking_gate' },
                         style: 'primary',
                         color: '#6699BB',
+                        margin: 'md',
+                        height: 'sm',
                     },
                 ],
             },
@@ -750,10 +591,10 @@ export function buildResourceCategoryPickerMessage(): messagingApi.FlexMessage {
             header: {
                 type: 'box',
                 layout: 'vertical',
-                paddingAll: 'lg',
+                paddingAll: 'md',
                 contents: [
-                    { type: 'text', text: '📚 แหล่งช่วยเหลือตนเอง', color: '#FFFFFF', weight: 'bold', size: 'xl' },
-                    { type: 'text', text: 'เลือกหมวดหมู่ที่คุณสนใจ', color: '#E4EEF3', size: 'sm', margin: 'xs' },
+                    { type: 'text', text: '📚 แหล่งช่วยเหลือตนเอง', color: '#FFFFFF', weight: 'bold', size: 'lg' },
+                    { type: 'text', text: 'เลือกหมวดหมู่ที่คุณสนใจ', color: '#E4EEF3', size: 'xs', margin: 'xs' },
                 ],
             },
             body: {
