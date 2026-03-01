@@ -30,6 +30,7 @@ coverage/
 
 # Misc
 *.tgz
+*.tsbuildinfo
 
 # Claude Code / AI tooling
 .agents/
