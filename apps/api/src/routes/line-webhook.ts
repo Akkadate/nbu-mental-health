@@ -27,17 +27,19 @@ router.post('/', verifyLineSignature, async (req: Request, res: Response) => {
     // Return 200 immediately (LINE expects fast response)
     res.status(200).json({ ok: true });
 
-    // Process events asynchronously
+    // Process events asynchronously.
+    // Track users who fired a postback in this batch so we can skip their displayText echo.
+    const seenPostbackUsers = new Set<string>();
     for (const event of events) {
         try {
-            await handleEvent(event);
+            await handleEvent(event, seenPostbackUsers);
         } catch (err) {
             logger.error({ err, event }, 'Error handling LINE event');
         }
     }
 });
 
-async function handleEvent(event: LineEvent): Promise<void> {
+async function handleEvent(event: LineEvent, seenPostbackUsers?: Set<string>): Promise<void> {
     const userId = event.source.userId;
     if (!userId) return;
 
@@ -48,12 +50,20 @@ async function handleEvent(event: LineEvent): Promise<void> {
 
         case 'postback':
             if (event.postback?.data) {
+                // Mark this user so we can skip their displayText echo later in this batch
+                seenPostbackUsers?.add(userId);
                 await handlePostback(userId, event.postback.data, event.replyToken);
             }
             break;
 
         case 'message':
             if (event.message?.type === 'text' && event.message.text) {
+                // If user already had a postback in this batch, this text is a displayText echo
+                if (seenPostbackUsers?.has(userId)) {
+                    seenPostbackUsers.delete(userId);
+                    logger.debug({ userId }, 'Skipping displayText echo for postback user');
+                    return;
+                }
                 await handleTextMessage(userId, event.message.text, event.replyToken);
             }
             break;
@@ -333,9 +343,7 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
         return;
     }
 
-    // Note: 'นัดหมาย' keyword intentionally removed here
-    // to avoid double-firing when rich menu postback sends a displayText echo
-    if (['จองใหม่', 'นัดใหม่'].some((k) => normalized.includes(k))) {
+    if (['นัดหมาย', 'จองใหม่', 'นัดใหม่'].some((k) => normalized.includes(k))) {
         await handleBookingGate(userId);
         return;
     }
