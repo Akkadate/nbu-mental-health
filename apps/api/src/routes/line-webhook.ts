@@ -333,7 +333,9 @@ async function handleTextMessage(userId: string, text: string, replyToken?: stri
         return;
     }
 
-    if (['นัดหมาย', 'จอง', 'พบ'].some((k) => normalized.includes(k))) {
+    // Note: 'นัดหมาย' keyword intentionally removed here
+    // to avoid double-firing when rich menu postback sends a displayText echo
+    if (['จองใหม่', 'นัดใหม่'].some((k) => normalized.includes(k))) {
         await handleBookingGate(userId);
         return;
     }
