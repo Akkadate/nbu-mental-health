@@ -84,6 +84,28 @@ export async function createNotifyStaffJob(
 }
 
 /**
+ * Create notification job to push new appointment alert to staff LINE.
+ */
+export async function createAppointmentNotifyJob(
+    staffLineUserId: string,
+    appointmentType: string,
+    scheduledAt: string,
+    mode: string,
+    studentCode: string,
+    dashboardUrl: string,
+): Promise<void> {
+    await createJob('send_line_message', {
+        line_user_id: staffLineUserId,
+        message_type: 'new_appointment',
+        appointment_type: appointmentType,
+        scheduled_at: scheduledAt,
+        mode,
+        student_code: studentCode,
+        dashboard_url: dashboardUrl,
+    });
+}
+
+/**
  * Create job to push screening result Flex Message to student via LINE.
  */
 export async function createScreeningResultJob(

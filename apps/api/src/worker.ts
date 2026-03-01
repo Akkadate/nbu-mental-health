@@ -95,6 +95,64 @@ async function handleSendLineMessage(payload: any): Promise<void> {
             messages.push(buildSafetyPackMessage());
         }
         await pushMessage(line_user_id, messages);
+        return;
+    }
+
+    if (message_type === 'new_appointment') {
+        const { appointment_type, scheduled_at, mode, student_code, dashboard_url } = payload;
+        const dt = new Date(scheduled_at);
+        const dateStr = dt.toLocaleDateString('th-TH', { weekday: 'short', day: 'numeric', month: 'short', year: 'numeric', timeZone: 'Asia/Bangkok' });
+        const timeStr = dt.toLocaleTimeString('th-TH', { hour: '2-digit', minute: '2-digit', timeZone: 'Asia/Bangkok' });
+        const typeLabel = appointment_type === 'advisor' ? 'อาจารย์ที่ปรึกษา' : 'นักจิตวิทยา';
+        const modeLabel = mode === 'online' ? '🌐 ออนไลน์' : '📍 มาพบตัว';
+
+        await pushMessage(line_user_id, [{
+            type: 'flex',
+            altText: `📅 นัดหมายใหม่ — ${student_code}`,
+            contents: {
+                type: 'bubble',
+                body: {
+                    type: 'box',
+                    layout: 'vertical',
+                    spacing: 'md',
+                    contents: [
+                        { type: 'text', text: '📅 มีนัดหมายใหม่', weight: 'bold', size: 'lg', color: '#00B900' },
+                        { type: 'separator', margin: 'md' },
+                        {
+                            type: 'box', layout: 'vertical', margin: 'md', spacing: 'sm',
+                            contents: [
+                                { type: 'box', layout: 'horizontal', contents: [
+                                    { type: 'text', text: 'นักศึกษา', size: 'sm', color: '#6B7280', flex: 2 },
+                                    { type: 'text', text: student_code, size: 'sm', weight: 'bold', flex: 3 },
+                                ]},
+                                { type: 'box', layout: 'horizontal', contents: [
+                                    { type: 'text', text: 'วันที่', size: 'sm', color: '#6B7280', flex: 2 },
+                                    { type: 'text', text: dateStr, size: 'sm', weight: 'bold', flex: 3, wrap: true },
+                                ]},
+                                { type: 'box', layout: 'horizontal', contents: [
+                                    { type: 'text', text: 'เวลา', size: 'sm', color: '#6B7280', flex: 2 },
+                                    { type: 'text', text: timeStr, size: 'sm', weight: 'bold', flex: 3 },
+                                ]},
+                                { type: 'box', layout: 'horizontal', contents: [
+                                    { type: 'text', text: 'รูปแบบ', size: 'sm', color: '#6B7280', flex: 2 },
+                                    { type: 'text', text: modeLabel, size: 'sm', weight: 'bold', flex: 3 },
+                                ]},
+                            ],
+                        },
+                    ],
+                },
+                footer: {
+                    type: 'box', layout: 'vertical',
+                    contents: [{
+                        type: 'button',
+                        action: { type: 'uri', label: `ดูตารางนัดหมาย ${typeLabel}`, uri: dashboard_url },
+                        style: 'primary',
+                        color: '#00B900',
+                    }],
+                },
+            },
+        }]);
+        return;
     }
 }
 

@@ -2,7 +2,8 @@ import { Router, Request, Response } from 'express';
 import { schemas } from '@nbu/shared';
 import db from '../db.js';
 import { authenticate, authorize, auditLog } from '../middleware/index.js';
-import { createReminderJobs } from '../services/jobs.js';
+import { createReminderJobs, createAppointmentNotifyJob } from '../services/jobs.js';
+import { config } from '../config.js';
 import { logger } from '../logger.js';
 
 const router = Router();
@@ -66,6 +67,31 @@ router.post('/', async (req: Request, res: Response) => {
         line_user_id,
         new Date(slot.start_at)
     );
+
+    // Notify staff via LINE when a new appointment is booked
+    const staffProfileTable = type === 'advisor' ? 'advisory.advisors' : 'clinical.counselors';
+    const staffMember = await db(staffProfileTable).where({ id: staffId }).first();
+    if (staffMember?.user_id) {
+        const staffUser = await db('public.users')
+            .where({ id: staffMember.user_id })
+            .select('line_user_id')
+            .first();
+        if (staffUser?.line_user_id) {
+            const student = await db('public.students')
+                .where({ id: student_id })
+                .select('student_code')
+                .first();
+            const dashboardPath = type === 'advisor' ? '/advisor/appointments' : '/counselor/appointments';
+            await createAppointmentNotifyJob(
+                staffUser.line_user_id,
+                type,
+                slot.start_at,
+                mode,
+                student?.student_code ?? 'นักศึกษา',
+                `${config.ADMIN_URL}${dashboardPath}`,
+            );
+        }
+    }
 
     logger.info({
         appointmentId: appointment.id,
