@@ -64,10 +64,10 @@ async function reply(
 router.post('/', verifyLineSignature, async (req: Request, res: Response) => {
     const events: LineEvent[] = req.body.events || [];
 
-    // Return 200 immediately (LINE expects fast response)
-    res.status(200).json({ ok: true });
-
-    // Process events asynchronously
+    // Process events BEFORE returning 200 so replyMessage is sent synchronously.
+    // LINE links a replyMessage to the originating event and auto-scrolls the chat
+    // to show it — but only if called before (or shortly after) returning 200.
+    // DB queries are typically <200 ms, well within LINE's 1-second timeout.
     for (const event of events) {
         try {
             await handleEvent(event);
@@ -75,6 +75,8 @@ router.post('/', verifyLineSignature, async (req: Request, res: Response) => {
             logger.error({ err, event }, 'Error handling LINE event');
         }
     }
+
+    res.status(200).json({ ok: true });
 });
 
 async function handleEvent(event: LineEvent): Promise<void> {

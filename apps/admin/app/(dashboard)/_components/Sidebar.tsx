@@ -67,6 +67,12 @@ const KeyIcon = () => (
     </svg>
 )
 
+const GuideIcon = () => (
+    <svg className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" strokeWidth={1.8}>
+        <path strokeLinecap="round" strokeLinejoin="round" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
+    </svg>
+)
+
 const navItems: NavItem[] = [
     { href: '/advisor/appointments', label: 'นัดหมายของฉัน', icon: <CalendarIcon />, roles: ['advisor'] },
     { href: '/advisor/slots', label: 'จัดการตารางเวลา', icon: <ClockIcon />, roles: ['advisor'] },
@@ -78,6 +84,7 @@ const navItems: NavItem[] = [
     { href: '/admin/resources', label: 'แหล่งช่วยเหลือ', icon: <BookOpenIcon />, roles: ['admin'] },
     { href: '/admin/users', label: 'จัดการบัญชีพนักงาน', icon: <UsersIcon />, roles: ['admin'] },
     { href: '/admin/students', label: 'รายชื่อนักศึกษา', icon: <AcademicCapIcon />, roles: ['admin'] },
+    { href: '/guide', label: 'คู่มือการใช้งาน', icon: <GuideIcon />, roles: ['advisor', 'counselor'] },
     { href: '/settings/password', label: 'เปลี่ยนรหัสผ่าน', icon: <KeyIcon />, roles: ['advisor', 'counselor', 'admin'] },
 ]
 
